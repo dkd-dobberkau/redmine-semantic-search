@@ -9,29 +9,30 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation)
-Plan: 4 of 4 in current phase — PHASE COMPLETE
-Status: Complete
-Last activity: 2026-02-18 — Plan 01-04 completed (Recall@10 benchmark, multilingual-e5-base confirmed, Phase 1 foundation complete)
+Phase: 2 of 5 (Core Issue Search)
+Plan: 1 of 5 in current phase — COMPLETE
+Status: In Progress
+Last activity: 2026-02-18 — Plan 02-01 completed (Redmine REST client, text preprocessing)
 
-Progress: [█████░░░░░] 20%
+Progress: [██████░░░░] 24%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 6 min
-- Total execution time: 0.37 hours
+- Total plans completed: 5
+- Average duration: 5 min
+- Total execution time: 0.42 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4/4 | 22 min | 5.5 min |
+| 02-core-issue-search | 1/5 | 3 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min, 2 min, 13 min
-- Trend: stable (13 min was benchmark execution including Docker pull + disk cleanup)
+- Last 5 plans: 4 min, 3 min, 2 min, 13 min, 3 min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -59,6 +60,10 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: backoff.Permanent wraps 4xx errors to prevent retry on validation errors; only network/5xx retried for TEI cold start
 - [Phase 01-foundation]: platform: linux/amd64 in docker-compose.yml required on Apple Silicon (TEI and Qdrant publish amd64-only images)
 - [Phase 01-foundation]: multilingual-e5-base confirmed as the model for 768d vector schema — Phase 2 proceeds
+- [02-01]: Dual apiKey parameter in doJSON allows admin and user keys to share one implementation without wrapper structs
+- [02-01]: ChunkSize=1600/ChunkOverlap=200 chars per research discretion (~400/~50 tokens for multilingual-e5-base)
+- [02-01]: url.Values.Set encodes ">=" automatically — no manual percent-encoding needed for updated_on cursor
+- [02-01]: status_id=* always passed to FetchIssuesSince/FetchAllIssueIDs to include closed issues
 
 ### Pending Todos
 
@@ -72,5 +77,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Phase 2 planned (5 plans, 3 waves). Verification passed. Ready for execution.
-Resume file: .planning/phases/02-core-issue-search/02-01-PLAN.md
+Stopped at: Completed 02-01-PLAN.md (Redmine REST client + text preprocessing)
+Resume file: .planning/phases/02-core-issue-search/02-02-PLAN.md

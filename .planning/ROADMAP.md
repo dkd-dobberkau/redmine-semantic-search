@@ -36,7 +36,7 @@ Plans:
 - [x] 01-01-PLAN.md — Go module setup, project layout, config system with viper YAML + env overrides
 - [x] 01-02-PLAN.md — Docker Compose stack (Qdrant, TEI, Go binary) with multi-stage Dockerfile
 - [x] 01-03-PLAN.md — Embedder interface + TEI implementation; Qdrant collection init with payload indexes and alias
-- [ ] 01-04-PLAN.md — Embedding model benchmark (DE/EN Recall@10 with synthetic QA pairs)
+- [x] 01-04-PLAN.md — Embedding model benchmark (DE/EN Recall@10 with synthetic QA pairs)
 
 ### Phase 2: Core Issue Search
 **Goal**: Users can submit a natural-language query and receive permission-filtered, relevance-ranked Redmine issues — and the index stays fresh through incremental sync with deletion reconciliation
@@ -52,7 +52,7 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Redmine REST client (paginated issue fetch, updated_on cursor, user/project resolution) + text preprocessing (Textile/Markdown stripping, overlapping chunking)
+- [x] 02-01-PLAN.md — Redmine REST client (paginated issue fetch, updated_on cursor, user/project resolution) + text preprocessing (Textile/Markdown stripping, overlapping chunking)
 - [ ] 02-02-PLAN.md — Indexer pipeline (strip, chunk, embed, batch upsert to Qdrant with deterministic chunk UUIDs) + config extension for sync/server fields
 - [ ] 02-03-PLAN.md — Incremental sync scheduler (bounded page polling, cursor advancement) + deletion reconciliation (ID diff job) + indexer main.go wiring
 - [ ] 02-04-PLAN.md — Auth middleware (X-Redmine-API-Key validation, 401/503) + permission cache (TTL, singleflight, project_id resolution)
@@ -115,7 +115,7 @@ Note: Phase 4 and Phase 5 both depend on Phase 3 and can be executed in parallel
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-02-18 |
-| 2. Core Issue Search | 0/5 | Not started | - |
+| 2. Core Issue Search | 1/5 | In Progress | - |
 | 3. Content Breadth and Operations | 0/4 | Not started | - |
 | 4. Hybrid Search | 0/3 | Not started | - |
 | 5. API Completeness and Admin | 0/2 | Not started | - |
