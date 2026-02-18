@@ -12,7 +12,7 @@ Redmine Semantic Search is built in five phases that follow the component depend
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Go module, Docker Compose, Embedder interface, Qdrant collection with payload indexes, embedding model benchmark
+- [x] **Phase 1: Foundation** - Go module, Docker Compose, Embedder interface, Qdrant collection with payload indexes, embedding model benchmark (completed 2026-02-18)
 - [ ] **Phase 2: Core Issue Search** - Issue indexer pipeline, incremental sync, deletion reconciliation, semantic search API with two-phase permission enforcement
 - [ ] **Phase 3: Content Breadth and Operations** - Wiki and journal indexing, zero-downtime full reindex, operational hardening (logging, graceful shutdown, idempotency, retry, OpenAPI spec)
 - [ ] **Phase 4: Hybrid Search** - Sparse vector pipeline, BM25/SPLADE integration, configurable hybrid weight, Reciprocal Rank Fusion scoring
@@ -114,7 +114,7 @@ Note: Phase 4 and Phase 5 both depend on Phase 3 and can be executed in parallel
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 3/4 | In Progress|  |
+| 1. Foundation | 4/4 | Complete   | 2026-02-18 |
 | 2. Core Issue Search | 0/5 | Not started | - |
 | 3. Content Breadth and Operations | 0/4 | Not started | - |
 | 4. Hybrid Search | 0/3 | Not started | - |
