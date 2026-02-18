@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 2 of 5 (Core Issue Search)
-Plan: 1 of 5 in current phase — COMPLETE
+Plan: 4 of 5 in current phase — COMPLETE
 Status: In Progress
-Last activity: 2026-02-18 — Plan 02-01 completed (Redmine REST client, text preprocessing)
+Last activity: 2026-02-18 — Plan 02-04 completed (auth middleware, permission cache with singleflight)
 
-Progress: [██████░░░░] 24%
+Progress: [███████░░░] 28%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 5 min
-- Total execution time: 0.42 hours
+- Total plans completed: 6
+- Average duration: 4 min
+- Total execution time: 0.46 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4/4 | 22 min | 5.5 min |
-| 02-core-issue-search | 1/5 | 3 min | 3 min |
+| 02-core-issue-search | 2/5 | 5 min | 2.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min, 2 min, 13 min, 3 min
+- Last 5 plans: 3 min, 2 min, 13 min, 3 min, 2 min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -64,6 +64,13 @@ Recent decisions affecting current work:
 - [02-01]: ChunkSize=1600/ChunkOverlap=200 chars per research discretion (~400/~50 tokens for multilingual-e5-base)
 - [02-01]: url.Values.Set encodes ">=" automatically — no manual percent-encoding needed for updated_on cursor
 - [02-01]: status_id=* always passed to FetchIssuesSince/FetchAllIssueIDs to include closed issues
+- [02-02]: DeleteIssueChunks called before every IndexIssues upsert using NewPointsSelectorFilter — avoids stale chunk orphans when re-indexing changes chunk count
+- [02-02]: author_id (int) stored alongside author (string) in payload so post-filtering of private issues uses numeric user ID, not display name
+- [02-02]: ChunkPointID placed in internal/qdrant/pointid.go (not pipeline.go) to keep deterministic ID logic in one canonical location
+- [02-02]: NewPointsSelectorFilter available directly in go-client v1.16.2 — no manual protobuf construction needed
+- [Phase 02-core-issue-search]: ProjectIDs is []int64 (not []int) in UserPermissions for direct use in Qdrant NewMatchInt filter without conversion
+- [Phase 02-core-issue-search]: errors.Is used for ErrUnauthorized check in auth middleware — future-proofs against wrapped error variants
+- [Phase 02-core-issue-search]: singleflight.Group per PermissionCache instance (not global) — isolates cache stampede prevention per cache and simplifies testing
 
 ### Pending Todos
 
@@ -77,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 02-01-PLAN.md (Redmine REST client + text preprocessing)
-Resume file: .planning/phases/02-core-issue-search/02-02-PLAN.md
+Stopped at: Completed 02-02-PLAN.md (indexer pipeline + config extension)
+Resume file: .planning/phases/02-core-issue-search/02-03-PLAN.md
