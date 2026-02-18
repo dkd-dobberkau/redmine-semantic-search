@@ -1,0 +1,47 @@
+# Redmine Semantic Search - Configuration File
+#
+# Copy this file to config.yml and fill in your values:
+#   cp config.example.yml config.yml
+#
+# All values can be overridden via environment variables.
+# The env var name is the uppercase version of the key
+# (e.g. redmine_url → REDMINE_URL, redmine_api_key → REDMINE_API_KEY).
+#
+# Config file is optional — you can configure entirely via env vars.
+
+# ---------------------------------------------------------------------------
+# Redmine Connection
+# ---------------------------------------------------------------------------
+
+# Base URL of your Redmine instance. Must include scheme (http/https).
+# Required. Env: REDMINE_URL
+redmine_url: "https://redmine.example.com"
+
+# Redmine REST API key for authentication.
+# Find it in Redmine → My Account → API access key.
+# Required. Env: REDMINE_API_KEY
+redmine_api_key: ""
+
+# ---------------------------------------------------------------------------
+# Qdrant Vector Database
+# ---------------------------------------------------------------------------
+
+# Hostname or IP address of the Qdrant gRPC endpoint.
+# When using Docker Compose, use the service name: redmine-search-qdrant
+# Required. Env: QDRANT_HOST
+qdrant_host: "localhost"
+
+# gRPC port of the Qdrant service.
+# Default: 6334 (gRPC). Qdrant also exposes 6333 for HTTP/REST (not used here).
+# Optional. Env: QDRANT_PORT
+qdrant_port: 6334
+
+# ---------------------------------------------------------------------------
+# Embedding Service (Text Embeddings Inference)
+# ---------------------------------------------------------------------------
+
+# Base URL of the TEI (Text Embeddings Inference) service.
+# When using Docker Compose, use: http://redmine-search-embedding:80
+# For local development: http://localhost:8080
+# Required. Env: EMBEDDING_URL
+embedding_url: "http://localhost:8080"
