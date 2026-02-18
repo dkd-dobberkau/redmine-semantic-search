@@ -1,0 +1,11 @@
+.git
+.planning
+.codegraph
+.claude
+.env
+config.yml
+models/
+logs/
+*.md
+deployments/
+bench/
