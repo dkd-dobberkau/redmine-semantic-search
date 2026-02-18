@@ -32,6 +32,26 @@ type Config struct {
 	// EmbeddingURL is the base URL of the text embeddings inference service.
 	// Required. Environment variable: EMBEDDING_URL
 	EmbeddingURL string `mapstructure:"embedding_url" validate:"required,url"`
+
+	// SyncInterval is the polling interval for incremental sync in minutes. Default: 5.
+	// Environment variable: SYNC_INTERVAL
+	SyncInterval int `mapstructure:"sync_interval"`
+
+	// SyncBatchSize is the max number of issues fetched per polling cycle. Default: 100.
+	// Environment variable: SYNC_BATCH_SIZE
+	SyncBatchSize int `mapstructure:"sync_batch_size"`
+
+	// ReconcileSchedule is the cron expression for deletion reconciliation. Default: "0 */6 * * *" (every 6 hours).
+	// Environment variable: RECONCILE_SCHEDULE
+	ReconcileSchedule string `mapstructure:"reconcile_schedule"`
+
+	// ListenAddr is the HTTP server listen address. Default: ":8090".
+	// Environment variable: LISTEN_ADDR
+	ListenAddr string `mapstructure:"listen_addr"`
+
+	// PermissionCacheTTL is the TTL for permission cache entries in minutes. Default: 5.
+	// Environment variable: PERMISSION_CACHE_TTL
+	PermissionCacheTTL int `mapstructure:"permission_cache_ttl"`
 }
 
 // Load reads configuration from config.yml (if present) and environment variables,
@@ -56,6 +76,15 @@ func Load() (*Config, error) {
 	viper.SetDefault("qdrant_host", "")
 	viper.SetDefault("qdrant_port", 6334)
 	viper.SetDefault("embedding_url", "")
+
+	// Sync & indexer defaults.
+	viper.SetDefault("sync_interval", 5)
+	viper.SetDefault("sync_batch_size", 100)
+	viper.SetDefault("reconcile_schedule", "0 */6 * * *")
+
+	// Search server defaults.
+	viper.SetDefault("listen_addr", ":8090")
+	viper.SetDefault("permission_cache_ttl", 5)
 
 	// Map env vars: QDRANT_HOST → qdrant_host, REDMINE_API_KEY → redmine_api_key, etc.
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
