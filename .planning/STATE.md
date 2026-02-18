@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 2 of 5 (Core Issue Search)
-Plan: 3 of 5 in current phase — COMPLETE
+Plan: 5 of 5 in current phase — COMPLETE
 Status: In Progress
-Last activity: 2026-02-18 — Plan 02-03 completed (incremental sync, deletion reconciler, indexer entrypoint)
+Last activity: 2026-02-18 — Plan 02-05 completed (search HTTP server, health endpoint, facet aggregation)
 
-Progress: [███████░░░] 28%
+Progress: [████████░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 3.7 min
-- Total execution time: 0.49 hours
+- Total plans completed: 9
+- Average duration: 3.4 min
+- Total execution time: 0.51 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4/4 | 22 min | 5.5 min |
-| 02-core-issue-search | 3/5 | 7 min | 2.3 min |
+| 02-core-issue-search | 5/5 | 10 min | 2.0 min |
 
 **Recent Trend:**
-- Last 5 plans: 3 min, 2 min, 13 min, 3 min, 2 min
+- Last 5 plans: 2 min, 13 min, 3 min, 2 min, 3 min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -75,6 +75,9 @@ Recent decisions affecting current work:
 - [02-03]: One page per sync cycle (SyncBatchSize) — more pages logged as hint, fetched next cycle (bounded-page approach)
 - [02-03]: Reconciler uses ScrollAndOffset (cursor-based) not integer-offset — avoids skip-scanning on large collections
 - [02-03]: reconciler.Stop() returns context.Context (robfig/cron API), awaited via <-ctx.Done() in main shutdown
+- [02-05]: NewMatchInts used for project_id permission pre-filter — single condition covering all accessible project IDs, no N separate Should conditions
+- [02-05]: Facet errors are non-fatal in search handler — log and return nil facets rather than failing the whole response
+- [02-05]: Dedicated http.Client in HealthHandler for 5s TEI timeout — isolates from default global client
 
 ### Pending Todos
 
@@ -88,5 +91,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 02-03-PLAN.md (incremental sync scheduler, deletion reconciler, indexer main.go)
-Resume file: .planning/phases/02-core-issue-search/02-05-PLAN.md
+Stopped at: Completed 02-05-PLAN.md (search HTTP server, health endpoint, facet aggregation, server entrypoint)
+Resume file: .planning/phases/03-search-api-polish/03-01-PLAN.md (next phase)

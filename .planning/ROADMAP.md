@@ -13,7 +13,7 @@ Redmine Semantic Search is built in five phases that follow the component depend
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Go module, Docker Compose, Embedder interface, Qdrant collection with payload indexes, embedding model benchmark (completed 2026-02-18)
-- [ ] **Phase 2: Core Issue Search** - Issue indexer pipeline, incremental sync, deletion reconciliation, semantic search API with two-phase permission enforcement
+- [x] **Phase 2: Core Issue Search** - Issue indexer pipeline, incremental sync, deletion reconciliation, semantic search API with two-phase permission enforcement (completed 2026-02-18)
 - [ ] **Phase 3: Content Breadth and Operations** - Wiki and journal indexing, zero-downtime full reindex, operational hardening (logging, graceful shutdown, idempotency, retry, OpenAPI spec)
 - [ ] **Phase 4: Hybrid Search** - Sparse vector pipeline, BM25/SPLADE integration, configurable hybrid weight, Reciprocal Rank Fusion scoring
 - [ ] **Phase 5: API Completeness and Admin** - Similar issues endpoint, admin reindex endpoint, full API surface complete
@@ -53,10 +53,10 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Redmine REST client (paginated issue fetch, updated_on cursor, user/project resolution) + text preprocessing (Textile/Markdown stripping, overlapping chunking)
-- [ ] 02-02-PLAN.md — Indexer pipeline (strip, chunk, embed, batch upsert to Qdrant with deterministic chunk UUIDs) + config extension for sync/server fields
-- [ ] 02-03-PLAN.md — Incremental sync scheduler (bounded page polling, cursor advancement) + deletion reconciliation (ID diff job) + indexer main.go wiring
-- [ ] 02-04-PLAN.md — Auth middleware (X-Redmine-API-Key validation, 401/503) + permission cache (TTL, singleflight, project_id resolution)
-- [ ] 02-05-PLAN.md — Search handler (embed query, Qdrant filtered ANN, post-filter, chunk dedup, facets, pagination, snippets) + health endpoint + server main.go
+- [x] 02-02-PLAN.md — Indexer pipeline (strip, chunk, embed, batch upsert to Qdrant with deterministic chunk UUIDs) + config extension for sync/server fields
+- [x] 02-03-PLAN.md — Incremental sync scheduler (bounded page polling, cursor advancement) + deletion reconciliation (ID diff job) + indexer main.go wiring
+- [x] 02-04-PLAN.md — Auth middleware (X-Redmine-API-Key validation, 401/503) + permission cache (TTL, singleflight, project_id resolution)
+- [x] 02-05-PLAN.md — Search handler (embed query, Qdrant filtered ANN, post-filter, chunk dedup, facets, pagination, snippets) + health endpoint + server main.go
 
 ### Phase 3: Content Breadth and Operations
 **Goal**: Wiki pages and journal entries are searchable; the index can be fully rebuilt without search downtime; and the service is operationally hardened for production (structured logging, graceful shutdown, retry, idempotency, OpenAPI documentation)
@@ -115,7 +115,7 @@ Note: Phase 4 and Phase 5 both depend on Phase 3 and can be executed in parallel
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete    | 2026-02-18 |
-| 2. Core Issue Search | 1/5 | In Progress | - |
+| 2. Core Issue Search | 5/5 | Complete    | 2026-02-18 |
 | 3. Content Breadth and Operations | 0/4 | Not started | - |
 | 4. Hybrid Search | 0/3 | Not started | - |
 | 5. API Completeness and Admin | 0/2 | Not started | - |
