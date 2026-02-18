@@ -30,13 +30,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The Qdrant collection exists with payload indexes on `project_id`, `content_type`, `tracker`, `status`, `author_id`, and `created_on` before any document is indexed
   4. A Recall@10 benchmark on representative Redmine DE/EN content confirms the selected embedding model (multilingual-e5-base or alternative) before vector dimensionality is committed
   5. All service parameters are configurable via environment variables or YAML config file with no hardcoded values
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Go module setup, project layout, dependency wiring (chi, viper, qdrant go-client, slog)
-- [ ] 01-02: Docker Compose stack (Qdrant, TEI, Go binary) with config via env/YAML
-- [ ] 01-03: Embedder interface + TEI implementation; Qdrant collection init with payload indexes
-- [ ] 01-04: Embedding model benchmark (DE/EN Recall@10 on real Redmine content)
+- [ ] 01-01-PLAN.md — Go module setup, project layout, config system with viper YAML + env overrides
+- [ ] 01-02-PLAN.md — Docker Compose stack (Qdrant, TEI, Go binary) with multi-stage Dockerfile
+- [ ] 01-03-PLAN.md — Embedder interface + TEI implementation; Qdrant collection init with payload indexes and alias
+- [ ] 01-04-PLAN.md — Embedding model benchmark (DE/EN Recall@10 with synthetic QA pairs)
 
 ### Phase 2: Core Issue Search
 **Goal**: Users can submit a natural-language query and receive permission-filtered, relevance-ranked Redmine issues — and the index stays fresh through incremental sync with deletion reconciliation
