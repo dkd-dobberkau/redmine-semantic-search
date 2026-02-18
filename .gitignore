@@ -1,0 +1,42 @@
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go binaries (project-specific built artifacts — not source directories)
+/indexer
+/recall
+
+# Go module cache
+vendor/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Config and secrets (never commit these)
+config.yml
+.env
+
+# Model files (large, not tracked)
+models/
+
+# Log files
+logs/
+*.log
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage.out
+coverage.html
