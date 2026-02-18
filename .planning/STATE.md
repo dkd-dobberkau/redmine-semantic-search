@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Nutzer finden relevante Redmine-Inhalte uber semantische Suche, auch wenn sie die exakte Formulierung nicht kennen — ohne das Berechtigungsmodell zu umgehen.
-**Current focus:** Phase 2 — Redmine Client and Indexer
+**Current focus:** Phase 2 — Core Issue Search
 
 ## Current Position
 
@@ -72,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 01-04-PLAN.md (Recall@10 benchmark, multilingual-e5-base confirmed, Phase 1 complete). Ready for Phase 2.
-Resume file: None
+Stopped at: Phase 2 context gathered. Ready for planning.
+Resume file: .planning/phases/02-core-issue-search/02-CONTEXT.md
