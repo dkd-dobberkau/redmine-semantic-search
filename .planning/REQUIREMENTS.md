@@ -94,42 +94,42 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IDX-01 | — | Pending |
-| IDX-02 | — | Pending |
-| IDX-03 | — | Pending |
-| IDX-04 | — | Pending |
-| IDX-05 | — | Pending |
-| IDX-06 | — | Pending |
-| IDX-07 | — | Pending |
-| SRCH-01 | — | Pending |
-| SRCH-02 | — | Pending |
-| SRCH-03 | — | Pending |
-| SRCH-04 | — | Pending |
-| SRCH-05 | — | Pending |
-| SRCH-06 | — | Pending |
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| API-04 | — | Pending |
-| API-05 | — | Pending |
-| OPS-01 | — | Pending |
-| OPS-02 | — | Pending |
-| OPS-03 | — | Pending |
-| OPS-04 | — | Pending |
-| OPS-05 | — | Pending |
-| OPS-06 | — | Pending |
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
+| IDX-01 | Phase 2 | Pending |
+| IDX-02 | Phase 3 | Pending |
+| IDX-03 | Phase 3 | Pending |
+| IDX-04 | Phase 2 | Pending |
+| IDX-05 | Phase 3 | Pending |
+| IDX-06 | Phase 2 | Pending |
+| IDX-07 | Phase 2 | Pending |
+| SRCH-01 | Phase 2 | Pending |
+| SRCH-02 | Phase 4 | Pending |
+| SRCH-03 | Phase 2 | Pending |
+| SRCH-04 | Phase 2 | Pending |
+| SRCH-05 | Phase 2 | Pending |
+| SRCH-06 | Phase 5 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| API-01 | Phase 2 | Pending |
+| API-02 | Phase 2 | Pending |
+| API-03 | Phase 5 | Pending |
+| API-04 | Phase 5 | Pending |
+| API-05 | Phase 3 | Pending |
+| OPS-01 | Phase 1 | Pending |
+| OPS-02 | Phase 1 | Pending |
+| OPS-03 | Phase 3 | Pending |
+| OPS-04 | Phase 3 | Pending |
+| OPS-05 | Phase 3 | Pending |
+| OPS-06 | Phase 3 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
-- Mapped to phases: 0
-- Unmapped: 30
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-18*
-*Last updated: 2026-02-18 after initial definition*
+*Last updated: 2026-02-18 after roadmap creation*
