@@ -10,25 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 2 of 5 (Core Issue Search)
-Plan: 4 of 5 in current phase — COMPLETE
+Plan: 3 of 5 in current phase — COMPLETE
 Status: In Progress
-Last activity: 2026-02-18 — Plan 02-04 completed (auth middleware, permission cache with singleflight)
+Last activity: 2026-02-18 — Plan 02-03 completed (incremental sync, deletion reconciler, indexer entrypoint)
 
 Progress: [███████░░░] 28%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4 min
-- Total execution time: 0.46 hours
+- Total plans completed: 7
+- Average duration: 3.7 min
+- Total execution time: 0.49 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 4/4 | 22 min | 5.5 min |
-| 02-core-issue-search | 2/5 | 5 min | 2.5 min |
+| 02-core-issue-search | 3/5 | 7 min | 2.3 min |
 
 **Recent Trend:**
 - Last 5 plans: 3 min, 2 min, 13 min, 3 min, 2 min
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 - [Phase 02-core-issue-search]: ProjectIDs is []int64 (not []int) in UserPermissions for direct use in Qdrant NewMatchInt filter without conversion
 - [Phase 02-core-issue-search]: errors.Is used for ErrUnauthorized check in auth middleware — future-proofs against wrapped error variants
 - [Phase 02-core-issue-search]: singleflight.Group per PermissionCache instance (not global) — isolates cache stampede prevention per cache and simplifies testing
+- [02-03]: Cursor initialized to zero (epoch) — first sync fetches all issues from beginning without blocking pre-run
+- [02-03]: One page per sync cycle (SyncBatchSize) — more pages logged as hint, fetched next cycle (bounded-page approach)
+- [02-03]: Reconciler uses ScrollAndOffset (cursor-based) not integer-offset — avoids skip-scanning on large collections
+- [02-03]: reconciler.Stop() returns context.Context (robfig/cron API), awaited via <-ctx.Done() in main shutdown
 
 ### Pending Todos
 
@@ -84,5 +88,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 02-04-PLAN.md (auth middleware, permission cache with TTL and singleflight)
+Stopped at: Completed 02-03-PLAN.md (incremental sync scheduler, deletion reconciler, indexer main.go)
 Resume file: .planning/phases/02-core-issue-search/02-05-PLAN.md
