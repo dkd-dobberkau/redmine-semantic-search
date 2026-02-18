@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-02-18 — Roadmap created
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-02-18 — Plan 01-01 completed (Go module + config system)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 5%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 4 min
+- Total execution time: 0.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1/4 | 4 min | 4 min |
 
 **Recent Trend:**
-- Last 5 plans: —
+- Last 5 plans: 4 min
 - Trend: —
 
 *Updated after each plan completion*
@@ -45,6 +45,9 @@ Recent decisions affecting current work:
 - [Pre-Phase 1]: Embedding model selection is a schema-level decision — run Recall@10 benchmark on real DE/EN Redmine content in Phase 1 before committing vector dimensionality (multilingual-e5-base 768d recommended)
 - [Pre-Phase 1]: gRPC connection to Qdrant must be a single shared ClientConn created at startup — not one per goroutine
 - [Pre-Phase 1]: All Qdrant payload indexes (project_id, content_type, tracker, status, author_id, created_on) must be created at collection init, before the first upsert
+- [01-01]: .gitignore binary names must be anchored with leading slash (/indexer not indexer) to avoid matching source directories
+- [01-01]: Viper v1.21 uses go-viper/mapstructure/v2 internally; mapstructure struct tags still work identically — no migration needed
+- [01-01]: Config file is optional; validator catches missing fields whether they come from YAML or env vars
 
 ### Pending Todos
 
@@ -58,5 +61,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Roadmap created, STATE.md initialized. Ready to plan Phase 1.
+Stopped at: Completed 01-01-PLAN.md (Go module + config system). Ready for 01-02.
 Resume file: None
