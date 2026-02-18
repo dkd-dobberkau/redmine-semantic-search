@@ -29,3 +29,19 @@ func PointID(contentType string, redmineID int) string {
 	key := fmt.Sprintf("%s:%d", contentType, redmineID)
 	return uuid.NewSHA1(PointIDNamespace, []byte(key)).String()
 }
+
+// ChunkPointID returns a deterministic UUID v5 string for a specific chunk of a
+// Redmine issue. Each (redmineID, chunkIndex) pair maps to a unique, stable UUID,
+// enabling idempotent chunk upserts. Different chunks of the same issue produce
+// distinct UUIDs, preventing collisions in Qdrant.
+//
+// The key format "issue:<id>:chunk:<index>" ensures no overlap with PointID keys.
+//
+// Example:
+//
+//	ChunkPointID(123, 0)  // first chunk of issue 123
+//	ChunkPointID(123, 1)  // second chunk of issue 123 — different UUID
+func ChunkPointID(redmineID, chunkIndex int) string {
+	key := fmt.Sprintf("issue:%d:chunk:%d", redmineID, chunkIndex)
+	return uuid.NewSHA1(PointIDNamespace, []byte(key)).String()
+}
