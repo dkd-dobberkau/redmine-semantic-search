@@ -49,14 +49,14 @@ Plans:
   4. Issues modified in Redmine appear in search results within one polling interval (default 5 minutes) without a full reindex
   5. Issues deleted from Redmine are removed from the index by the ID reconciliation job and no longer appear in search results
   6. Search results include faceted filters (project, tracker, status, author, date range, content type), pagination, and a text snippet per result
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 02-01: Redmine REST client (paginated issue fetch, `updated_on` cursor, custom fields)
-- [ ] 02-02: Indexer pipeline (fetch → text prep/chunking → embed → batch upsert to Qdrant, idempotent via deterministic UUIDs)
-- [ ] 02-03: Incremental sync scheduler + deletion reconciliation (ID diff job)
-- [ ] 02-04: Auth middleware (Redmine API key validation) + permission resolver (project_ids pre-filter)
-- [ ] 02-05: Search handler (`GET /api/v1/search`: embed query, Qdrant filtered ANN, post-filter, facets, pagination, snippets) + health endpoint
+- [ ] 02-01-PLAN.md — Redmine REST client (paginated issue fetch, updated_on cursor, user/project resolution) + text preprocessing (Textile/Markdown stripping, overlapping chunking)
+- [ ] 02-02-PLAN.md — Indexer pipeline (strip, chunk, embed, batch upsert to Qdrant with deterministic chunk UUIDs) + config extension for sync/server fields
+- [ ] 02-03-PLAN.md — Incremental sync scheduler (bounded page polling, cursor advancement) + deletion reconciliation (ID diff job) + indexer main.go wiring
+- [ ] 02-04-PLAN.md — Auth middleware (X-Redmine-API-Key validation, 401/503) + permission cache (TTL, singleflight, project_id resolution)
+- [ ] 02-05-PLAN.md — Search handler (embed query, Qdrant filtered ANN, post-filter, chunk dedup, facets, pagination, snippets) + health endpoint + server main.go
 
 ### Phase 3: Content Breadth and Operations
 **Goal**: Wiki pages and journal entries are searchable; the index can be fully rebuilt without search downtime; and the service is operationally hardened for production (structured logging, graceful shutdown, retry, idempotency, OpenAPI documentation)
