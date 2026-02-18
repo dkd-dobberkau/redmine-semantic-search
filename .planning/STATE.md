@@ -84,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 02-02-PLAN.md (indexer pipeline + config extension)
-Resume file: .planning/phases/02-core-issue-search/02-03-PLAN.md
+Stopped at: Completed 02-04-PLAN.md (auth middleware, permission cache with TTL and singleflight)
+Resume file: .planning/phases/02-core-issue-search/02-05-PLAN.md
