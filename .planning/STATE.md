@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-18)
 
 **Core value:** Nutzer finden relevante Redmine-Inhalte uber semantische Suche, auch wenn sie die exakte Formulierung nicht kennen — ohne das Berechtigungsmodell zu umgehen.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 2 — Redmine Client and Indexer
 
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 3 of 4 in current phase
-Status: In progress
-Last activity: 2026-02-18 — Plan 01-03 completed (Embedder interface, TEI client, Qdrant collection init, point IDs)
+Plan: 4 of 4 in current phase — PHASE COMPLETE
+Status: Complete
+Last activity: 2026-02-18 — Plan 01-04 completed (Recall@10 benchmark, multilingual-e5-base confirmed, Phase 1 foundation complete)
 
-Progress: [████░░░░░░] 15%
+Progress: [█████░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 3 min
-- Total execution time: 0.15 hours
+- Total plans completed: 4
+- Average duration: 6 min
+- Total execution time: 0.37 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 3/4 | 9 min | 3 min |
+| 01-foundation | 4/4 | 22 min | 5.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min, 2 min
-- Trend: stable
+- Last 5 plans: 4 min, 3 min, 2 min, 13 min
+- Trend: stable (13 min was benchmark execution including Docker pull + disk cleanup)
 
 *Updated after each plan completion*
 
@@ -55,6 +55,10 @@ Recent decisions affecting current work:
 - [01-03]: qdrant.FieldType enum names are FieldType_FieldTypeKeyword/Integer/Datetime (not shorter forms in research doc)
 - [01-03]: CreateFieldIndexCollection.FieldType is *FieldType (pointer) — must capture in local var before taking address
 - [01-03]: go get github.com/qdrant/go-client/qdrant@v1.16.2 (subpackage path) required to pull all gRPC/protobuf transitive deps into go.sum
+- [Phase 01-foundation]: TEI max-client-batch-size is 32 by default; embedding functions must chunk batches at most 32 texts
+- [Phase 01-foundation]: backoff.Permanent wraps 4xx errors to prevent retry on validation errors; only network/5xx retried for TEI cold start
+- [Phase 01-foundation]: platform: linux/amd64 in docker-compose.yml required on Apple Silicon (TEI and Qdrant publish amd64-only images)
+- [Phase 01-foundation]: multilingual-e5-base confirmed as the model for 768d vector schema — Phase 2 proceeds
 
 ### Pending Todos
 
@@ -68,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 01-03-PLAN.md (Embedder interface, TEI client, Qdrant collection init, point IDs). Ready for 01-04.
+Stopped at: Completed 01-04-PLAN.md (Recall@10 benchmark, multilingual-e5-base confirmed, Phase 1 complete). Ready for Phase 2.
 Resume file: None
