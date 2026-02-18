@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-18 — Plan 01-01 completed (Go module + config system)
+Last activity: 2026-02-18 — Plan 01-02 completed (Docker Compose stack + Dockerfile)
 
-Progress: [██░░░░░░░░] 5%
+Progress: [███░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 4 min
+- Total plans completed: 2
+- Average duration: 3.5 min
 - Total execution time: 0.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 1/4 | 4 min | 4 min |
+| 01-foundation | 2/4 | 7 min | 3.5 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min
-- Trend: —
+- Last 5 plans: 4 min, 3 min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -48,6 +48,9 @@ Recent decisions affecting current work:
 - [01-01]: .gitignore binary names must be anchored with leading slash (/indexer not indexer) to avoid matching source directories
 - [01-01]: Viper v1.21 uses go-viper/mapstructure/v2 internally; mapstructure struct tags still work identically — no migration needed
 - [01-01]: Config file is optional; validator catches missing fields whether they come from YAML or env vars
+- [01-02]: Dockerfile builder stage uses golang:1.25-alpine (not 1.23) — go.mod requires go 1.25.0; golang:1.23 rejects with GOTOOLCHAIN=local
+- [01-02]: Qdrant health check uses bash /dev/tcp (no curl in Qdrant image, GitHub issue #4250)
+- [01-02]: HF_HUB_CACHE=/data added to TEI service to cache model in ./models volume mount
 
 ### Pending Todos
 
@@ -61,5 +64,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 01-01-PLAN.md (Go module + config system). Ready for 01-02.
+Stopped at: Completed 01-02-PLAN.md (Docker Compose stack + Dockerfile). Ready for 01-03.
 Resume file: None

@@ -114,7 +114,7 @@ Note: Phase 4 and Phase 5 both depend on Phase 3 and can be executed in parallel
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/4 | In progress | - |
+| 1. Foundation | 2/4 | In Progress|  |
 | 2. Core Issue Search | 0/5 | Not started | - |
 | 3. Content Breadth and Operations | 0/4 | Not started | - |
 | 4. Hybrid Search | 0/3 | Not started | - |
