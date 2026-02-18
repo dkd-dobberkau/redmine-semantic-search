@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-18)
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-18 — Plan 01-02 completed (Docker Compose stack + Dockerfile)
+Last activity: 2026-02-18 — Plan 01-03 completed (Embedder interface, TEI client, Qdrant collection init, point IDs)
 
-Progress: [███░░░░░░░] 10%
+Progress: [████░░░░░░] 15%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 3.5 min
-- Total execution time: 0.1 hours
+- Total plans completed: 3
+- Average duration: 3 min
+- Total execution time: 0.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 2/4 | 7 min | 3.5 min |
+| 01-foundation | 3/4 | 9 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 4 min, 3 min
+- Last 5 plans: 4 min, 3 min, 2 min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -51,6 +51,10 @@ Recent decisions affecting current work:
 - [01-02]: Dockerfile builder stage uses golang:1.25-alpine (not 1.23) — go.mod requires go 1.25.0; golang:1.23 rejects with GOTOOLCHAIN=local
 - [01-02]: Qdrant health check uses bash /dev/tcp (no curl in Qdrant image, GitHub issue #4250)
 - [01-02]: HF_HUB_CACHE=/data added to TEI service to cache model in ./models volume mount
+- [01-03]: Embedder interface uses two methods (EmbedPassages/EmbedQuery) not a mode enum — prevents wrong-prefix usage at compile time
+- [01-03]: qdrant.FieldType enum names are FieldType_FieldTypeKeyword/Integer/Datetime (not shorter forms in research doc)
+- [01-03]: CreateFieldIndexCollection.FieldType is *FieldType (pointer) — must capture in local var before taking address
+- [01-03]: go get github.com/qdrant/go-client/qdrant@v1.16.2 (subpackage path) required to pull all gRPC/protobuf transitive deps into go.sum
 
 ### Pending Todos
 
@@ -64,5 +68,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-18
-Stopped at: Completed 01-02-PLAN.md (Docker Compose stack + Dockerfile). Ready for 01-03.
+Stopped at: Completed 01-03-PLAN.md (Embedder interface, TEI client, Qdrant collection init, point IDs). Ready for 01-04.
 Resume file: None

@@ -34,8 +34,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Go module setup, project layout, config system with viper YAML + env overrides
-- [ ] 01-02-PLAN.md — Docker Compose stack (Qdrant, TEI, Go binary) with multi-stage Dockerfile
-- [ ] 01-03-PLAN.md — Embedder interface + TEI implementation; Qdrant collection init with payload indexes and alias
+- [x] 01-02-PLAN.md — Docker Compose stack (Qdrant, TEI, Go binary) with multi-stage Dockerfile
+- [x] 01-03-PLAN.md — Embedder interface + TEI implementation; Qdrant collection init with payload indexes and alias
 - [ ] 01-04-PLAN.md — Embedding model benchmark (DE/EN Recall@10 with synthetic QA pairs)
 
 ### Phase 2: Core Issue Search
@@ -114,7 +114,7 @@ Note: Phase 4 and Phase 5 both depend on Phase 3 and can be executed in parallel
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/4 | In Progress|  |
+| 1. Foundation | 3/4 | In Progress|  |
 | 2. Core Issue Search | 0/5 | Not started | - |
 | 3. Content Breadth and Operations | 0/4 | Not started | - |
 | 4. Hybrid Search | 0/3 | Not started | - |
