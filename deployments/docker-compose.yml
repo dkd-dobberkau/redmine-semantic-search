@@ -1,6 +1,7 @@
 services:
   redmine-search-qdrant:
     image: qdrant/qdrant:latest
+    platform: linux/amd64
     container_name: redmine-search-qdrant
     ports:
       - "6333:6333"
@@ -19,6 +20,7 @@ services:
 
   redmine-search-embedding:
     image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    platform: linux/amd64
     container_name: redmine-search-embedding
     ports:
       - "8080:80"

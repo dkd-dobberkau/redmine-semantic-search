@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -28,34 +29,66 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// rawEmbedder calls the TEI /embed endpoint directly, without adding any
-// e5 prefixes. Used with --no-prefix to measure the prefix contribution.
-type rawEmbedder struct {
+const (
+	vectorDimension = 768
+
+	// teiBatchSize is the maximum number of texts per TEI /embed request.
+	// TEI defaults to --max-client-batch-size 32; sending more returns HTTP 422.
+	teiBatchSize = 32
+)
+
+// teiClient wraps HTTP calls to the TEI /embed endpoint with batching support.
+// Large input slices are automatically split into batches of teiBatchSize.
+type teiClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-func newRawEmbedder(baseURL string) *rawEmbedder {
-	return &rawEmbedder{
+func newTEIClient(baseURL string) *teiClient {
+	return &teiClient{
 		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 60 * time.Second},
 	}
 }
 
-func (e *rawEmbedder) embed(ctx context.Context, inputs []string) ([][]float32, error) {
+// embed sends inputs to TEI /embed, batching at teiBatchSize automatically.
+// Returns one float32 vector per input in the same order.
+func (t *teiClient) embed(ctx context.Context, inputs []string) ([][]float32, error) {
+	var all [][]float32
+	for start := 0; start < len(inputs); start += teiBatchSize {
+		end := start + teiBatchSize
+		if end > len(inputs) {
+			end = len(inputs)
+		}
+		batch := inputs[start:end]
+
+		vecs, err := t.embedBatch(ctx, batch)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, vecs...)
+	}
+	return all, nil
+}
+
+// embedBatch sends a single batch (must be <= teiBatchSize) to TEI /embed.
+// Returns a permanent error on 4xx responses (not retried) and a transient
+// error on connection/5xx failures (eligible for retry).
+func (t *teiClient) embedBatch(ctx context.Context, inputs []string) ([][]float32, error) {
 	body, err := json.Marshal(map[string]any{"inputs": inputs})
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
+		return nil, backoff.Permanent(fmt.Errorf("marshal request: %w", err))
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.baseURL+"/embed", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, t.baseURL+"/embed", bytes.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return nil, backoff.Permanent(fmt.Errorf("build request: %w", err))
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := e.httpClient.Do(req)
+	resp, err := t.httpClient.Do(req)
 	if err != nil {
+		// Network error — transient, eligible for retry.
 		return nil, fmt.Errorf("http request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -63,21 +96,30 @@ func (e *rawEmbedder) embed(ctx context.Context, inputs []string) ([][]float32, 
 	if resp.StatusCode != http.StatusOK {
 		errBody, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
-			return nil, fmt.Errorf("unexpected status %d (could not read body: %v)", resp.StatusCode, readErr)
+			errBody = []byte("(could not read body)")
 		}
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(errBody))
+		msg := fmt.Sprintf("TEI status %d: %s", resp.StatusCode, string(errBody))
+
+		// 4xx errors are permanent (bad request, auth failure, etc.).
+		// 5xx errors are transient (service unavailable, cold start).
+		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+			return nil, backoff.Permanent(errors.New(msg))
+		}
+		return nil, errors.New(msg) // transient: will be retried
 	}
 
 	var result [][]float32
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return nil, backoff.Permanent(fmt.Errorf("decode response: %w", err))
 	}
 	return result, nil
 }
 
-// embedWithRetry wraps the first embedding call with exponential backoff for
-// up to 2 minutes to handle TEI cold start (model loading delay).
-func embedWithRetry(ctx context.Context, embedFn func(context.Context, []string) ([][]float32, error), inputs []string) ([][]float32, error) {
+// embedWithColdStartRetry embeds inputs with exponential backoff for up to
+// 2 minutes to handle TEI cold start (model loading delay after container
+// startup). Only transient errors (connection refused, 5xx) are retried;
+// 4xx validation errors are treated as permanent failures.
+func (t *teiClient) embedWithColdStartRetry(ctx context.Context, inputs []string) ([][]float32, error) {
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxElapsedTime = 2 * time.Minute
 	bo.InitialInterval = 2 * time.Second
@@ -87,7 +129,7 @@ func embedWithRetry(ctx context.Context, embedFn func(context.Context, []string)
 	err := backoff.RetryNotify(
 		func() error {
 			var err error
-			result, err = embedFn(ctx, inputs)
+			result, err = t.embed(ctx, inputs)
 			return err
 		},
 		bo,
@@ -101,7 +143,14 @@ func embedWithRetry(ctx context.Context, embedFn func(context.Context, []string)
 	return result, nil
 }
 
-const vectorDimension = 768
+// applyPassagePrefix prepends "passage: " to each text for e5 models.
+func applyPassagePrefix(texts []string) []string {
+	out := make([]string, len(texts))
+	for i, t := range texts {
+		out[i] = "passage: " + t
+	}
+	return out
+}
 
 func main() {
 	qdrantHost := flag.String("qdrant-host", "localhost", "Qdrant host")
@@ -154,53 +203,20 @@ func main() {
 	}
 
 	pairs := BenchmarkPairs
+	tei := newTEIClient(*embeddingURL)
 
-	// Build the passage embedding function (with or without prefix).
-	var passageEmbedFn func(ctx context.Context, texts []string) ([][]float32, error)
-	var queryEmbedFn func(ctx context.Context, text string) ([]float32, error)
-
-	if *noPrefix {
-		raw := newRawEmbedder(*embeddingURL)
-		passageEmbedFn = raw.embed
-		queryEmbedFn = func(ctx context.Context, text string) ([]float32, error) {
-			vecs, err := raw.embed(ctx, []string{text})
-			if err != nil {
-				return nil, err
-			}
-			if len(vecs) == 0 {
-				return nil, fmt.Errorf("empty embedding response")
-			}
-			return vecs[0], nil
-		}
-	} else {
-		passageEmbedFn = func(ctx context.Context, texts []string) ([][]float32, error) {
-			prefixed := make([]string, len(texts))
-			for i, t := range texts {
-				prefixed[i] = "passage: " + t
-			}
-			return embedDirect(ctx, *embeddingURL, prefixed)
-		}
-		queryEmbedFn = func(ctx context.Context, text string) ([]float32, error) {
-			vecs, err := embedDirect(ctx, *embeddingURL, []string{"query: " + text})
-			if err != nil {
-				return nil, err
-			}
-			if len(vecs) == 0 {
-				return nil, fmt.Errorf("empty embedding response")
-			}
-			return vecs[0], nil
-		}
-	}
-
-	// Build passage texts for embedding.
+	// Prepare passage texts, applying e5 prefix if not in no-prefix mode.
 	passageTexts := make([]string, len(pairs))
 	for i, p := range pairs {
 		passageTexts[i] = p.Passage
 	}
+	if !*noPrefix {
+		passageTexts = applyPassagePrefix(passageTexts)
+	}
 
-	// Embed all passages — use retry for the first batch (TEI cold start).
+	// Embed all passages with TEI cold-start retry on the first call.
 	slog.Info("embedding passages", "count", len(passageTexts))
-	passageVecs, err := embedWithRetry(ctx, passageEmbedFn, passageTexts)
+	passageVecs, err := tei.embedWithColdStartRetry(ctx, passageTexts)
 	if err != nil {
 		slog.Error("failed to embed passages", "error", err)
 		os.Exit(1)
@@ -225,11 +241,22 @@ func main() {
 	slog.Info("evaluating queries", "count", len(pairs), "k", *k)
 
 	for i, pair := range pairs {
-		queryVec, err := queryEmbedFn(ctx, pair.Query)
+		// Prepare query input with or without e5 prefix.
+		queryInput := pair.Query
+		if !*noPrefix {
+			queryInput = "query: " + pair.Query
+		}
+
+		queryVecs, err := tei.embed(ctx, []string{queryInput})
 		if err != nil {
 			slog.Error("failed to embed query", "index", i, "query", pair.Query, "error", err)
 			os.Exit(1)
 		}
+		if len(queryVecs) == 0 {
+			slog.Error("empty embedding response for query", "index", i, "query", pair.Query)
+			os.Exit(1)
+		}
+		queryVec := queryVecs[0]
 
 		results, err := qdrantClient.Query(ctx, &qdrant.QueryPoints{
 			CollectionName: collectionName,
@@ -314,41 +341,4 @@ func upsertPoints(ctx context.Context, client *qdrant.Client, collectionName str
 		Points:         points,
 	})
 	return err
-}
-
-// embedDirect calls the TEI /embed endpoint without going through the Embedder
-// interface. Used internally for prefix and no-prefix embedding paths.
-func embedDirect(ctx context.Context, baseURL string, inputs []string) ([][]float32, error) {
-	httpClient := &http.Client{Timeout: 60 * time.Second}
-
-	body, err := json.Marshal(map[string]any{"inputs": inputs})
-	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/embed", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("http request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		errBody, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("unexpected status %d (could not read body: %v)", resp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(errBody))
-	}
-
-	var result [][]float32
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
 }
