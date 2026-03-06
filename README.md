@@ -7,25 +7,28 @@ Find relevant Redmine content through meaning, not just keywords. Users can sear
 ```
 Redmine ──polling──> Indexer ──embed──> Qdrant
                                           |
-User ──query──> Search API ──ANN search──┘
+User ──query──> Search Server ──ANN search──┘
                     |
             permission filter
             (pre + post)
 ```
 
-1. The **Indexer** polls Redmine for new/updated issues, strips Textile/Markdown formatting, splits text into overlapping chunks, generates embeddings via [TEI](https://github.com/huggingface/text-embeddings-inference) (multilingual-e5-base), and upserts them into [Qdrant](https://qdrant.tech/).
+1. The **Indexer** polls Redmine for new/updated issues, strips Textile/Markdown formatting, splits text into overlapping chunks, generates embeddings via [Ollama](https://ollama.com/) or [TEI](https://github.com/huggingface/text-embeddings-inference), and upserts them into [Qdrant](https://qdrant.tech/).
 2. The **Search Server** takes a natural-language query, embeds it, runs a filtered approximate nearest neighbor search against Qdrant, and returns permission-filtered, ranked results with snippets and facets.
 3. **Permissions** are enforced in two phases: pre-filtering by the user's accessible project IDs, then post-filtering for fine-grained rules (e.g. private issues).
+4. A built-in **Web UI** at the server root provides a simple search interface with direct links to Redmine issues.
 
 ## Features
 
 - **Semantic search** — find issues by meaning, not exact text match
-- **Multilingual** — works with German and English content (multilingual-e5-base)
+- **Multilingual** — works with German and English content out of the box
 - **Permission-aware** — respects Redmine project memberships and private issue visibility
 - **Incremental sync** — only re-indexes changed issues (configurable polling interval)
 - **Deletion reconciliation** — automatically removes deleted issues from the index
 - **Faceted filtering** — filter by project, tracker, status, author, date range, content type
 - **Pagination & snippets** — paginated results with relevant text excerpts
+- **Web UI** — minimal browser-based search interface served by the search server
+- **Pluggable embeddings** — switch between Ollama (default, native ARM64) and TEI
 
 ## Architecture
 
@@ -33,8 +36,9 @@ User ──query──> Search API ──ANN search──┘
 |-----------|-----------|
 | Language | Go |
 | Vector DB | Qdrant (gRPC) |
-| Embeddings | Text Embeddings Inference (multilingual-e5-base, 768d) |
+| Embeddings | Ollama (nomic-embed-text, 768d) or TEI (multilingual-e5-base, 768d) |
 | Config | Viper (YAML + env vars) |
+| Frontend | Single-file HTML/JS (served by Go) |
 | Deployment | Docker Compose |
 
 ### Project Structure
@@ -42,16 +46,18 @@ User ──query──> Search API ──ANN search──┘
 ```
 cmd/
   indexer/          # Indexer process (sync + reconciliation)
-  server/           # Search HTTP API server
+  server/           # Search HTTP API server + web UI
 internal/
   auth/             # API key validation, permission cache
   config/           # Configuration loading (YAML + env)
-  embedder/         # Embedding interface + TEI implementation
+  embedder/         # Embedding interface (Ollama + TEI implementations)
   indexer/          # Pipeline, sync scheduler, reconciler
   qdrant/           # Collection setup, point ID generation
   redmine/          # Redmine REST API client
   search/           # Search handler, health endpoint
   text/             # Textile/Markdown stripping, chunking
+web/
+  index.html        # Search frontend
 deployments/
   docker-compose.yml
   Dockerfile
@@ -62,6 +68,7 @@ deployments/
 ### Prerequisites
 
 - Docker and Docker Compose
+- [Ollama](https://ollama.com/) installed with an embedding model (`ollama pull nomic-embed-text`)
 - A Redmine instance with REST API enabled
 - A Redmine admin API key (for the indexer to read all issues)
 
@@ -76,6 +83,7 @@ Edit `deployments/.env`:
 ```env
 REDMINE_URL=https://your-redmine.example.com
 REDMINE_API_KEY=your-admin-api-key
+EMBEDDING_URL=http://host.docker.internal:11434
 ```
 
 All other settings have sensible defaults. See `config.example.yml` for the full list.
@@ -89,12 +97,15 @@ docker compose up --build
 
 This starts:
 - **Qdrant** — vector database on ports 6333 (HTTP) / 6334 (gRPC)
-- **TEI** — embedding server on port 8080 (downloads the model on first start)
-- **Indexer** — begins indexing issues immediately
+- **Indexer** — connects to your local Ollama and begins indexing issues immediately
 
 The search server runs inside the indexer container on port **8090**.
 
 ### 3. Search
+
+Open **http://localhost:8090** in your browser for the web UI.
+
+Or use the API directly:
 
 ```bash
 curl -H "X-Redmine-API-Key: YOUR_USER_API_KEY" \
@@ -126,6 +137,10 @@ Search for issues using natural language.
 
 Returns the status of Qdrant and the embedding service. No authentication required.
 
+### `GET /api/v1/config`
+
+Returns the configured Redmine URL and API key (used by the web UI).
+
 ## Configuration
 
 All settings can be configured via environment variables or `config.yml`:
@@ -136,12 +151,29 @@ All settings can be configured via environment variables or `config.yml`:
 | Redmine API Key | `REDMINE_API_KEY` | — | Admin API key for indexing |
 | Qdrant Host | `QDRANT_HOST` | `localhost` | Qdrant gRPC hostname |
 | Qdrant Port | `QDRANT_PORT` | `6334` | Qdrant gRPC port |
-| Embedding URL | `EMBEDDING_URL` | `http://localhost:8080` | TEI service URL |
+| Embedding Provider | `EMBEDDING_PROVIDER` | `ollama` | `ollama` or `tei` |
+| Embedding URL | `EMBEDDING_URL` | — | Embedding service URL |
+| Embedding Model | `EMBEDDING_MODEL` | `nomic-embed-text` | Ollama model name (ignored for TEI) |
 | Sync Interval | `SYNC_INTERVAL` | `5` | Polling interval in minutes |
 | Sync Batch Size | `SYNC_BATCH_SIZE` | `100` | Max issues per polling cycle |
 | Reconcile Schedule | `RECONCILE_SCHEDULE` | `0 */6 * * *` | Cron schedule for deletion reconciliation |
 | Listen Address | `LISTEN_ADDR` | `:8090` | HTTP server bind address |
 | Permission Cache TTL | `PERMISSION_CACHE_TTL` | `5` | Permission cache TTL in minutes |
+
+### Embedding Providers
+
+**Ollama** (default) — native ARM64 support, simple setup, runs locally:
+```env
+EMBEDDING_PROVIDER=ollama
+EMBEDDING_URL=http://localhost:11434
+EMBEDDING_MODEL=nomic-embed-text
+```
+
+**TEI** — HuggingFace Text Embeddings Inference, amd64 only:
+```env
+EMBEDDING_PROVIDER=tei
+EMBEDDING_URL=http://localhost:8080
+```
 
 ## Roadmap
 
