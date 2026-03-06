@@ -78,11 +78,12 @@ func main() {
 		pipeline,
 		time.Duration(cfg.SyncInterval)*time.Minute,
 		cfg.SyncBatchSize,
+		cfg.SyncStatusFilter,
 		logger,
 	)
 
 	// Step 9: Create the deletion reconciler.
-	reconciler, err := indexer.NewReconciler(redmineClient, qdrantClient, cfg.ReconcileSchedule, logger)
+	reconciler, err := indexer.NewReconciler(redmineClient, qdrantClient, cfg.ReconcileSchedule, cfg.SyncStatusFilter, logger)
 	if err != nil {
 		logger.Error("failed to create reconciler", "error", err)
 		os.Exit(1)

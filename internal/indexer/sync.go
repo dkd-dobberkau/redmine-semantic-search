@@ -21,35 +21,36 @@ import (
 //   - Cursor advances only after successful indexing — partial failures retry
 //     the same batch next cycle.
 type Syncer struct {
-	redmine  *redmine.Client
-	pipeline *Pipeline
-	interval time.Duration
-	batch    int          // max issues per poll cycle (config SyncBatchSize)
-	cursor   time.Time    // updated_on cursor — advances after each successful batch
-	logger   *slog.Logger
-	cancel   context.CancelFunc
-	done     chan struct{}
+	redmine      *redmine.Client
+	pipeline     *Pipeline
+	interval     time.Duration
+	batch        int          // max issues per poll cycle (config SyncBatchSize)
+	statusFilter string       // Redmine status_id filter ("open" or "*")
+	cursor       time.Time    // updated_on cursor — advances after each successful batch
+	logger       *slog.Logger
+	cancel       context.CancelFunc
+	done         chan struct{}
 }
 
 // NewSyncer constructs a Syncer. The cursor starts at the zero time (epoch),
 // meaning the first poll fetches all issues from the beginning.
-//
-// Call Start to begin polling; the syncer is non-blocking until Stop is called.
 func NewSyncer(
 	redmineClient *redmine.Client,
 	pipeline *Pipeline,
 	interval time.Duration,
 	batchSize int,
+	statusFilter string,
 	logger *slog.Logger,
 ) *Syncer {
 	return &Syncer{
-		redmine:  redmineClient,
-		pipeline: pipeline,
-		interval: interval,
-		batch:    batchSize,
-		cursor:   time.Time{}, // zero value — first poll fetches all issues
-		logger:   logger,
-		done:     make(chan struct{}),
+		redmine:      redmineClient,
+		pipeline:     pipeline,
+		interval:     interval,
+		batch:        batchSize,
+		statusFilter: statusFilter,
+		cursor:       time.Time{},
+		logger:       logger,
+		done:         make(chan struct{}),
 	}
 }
 
@@ -102,7 +103,7 @@ func (s *Syncer) Stop() {
 func (s *Syncer) poll(ctx context.Context) {
 	s.logger.Info("sync: polling", "since", s.cursor)
 
-	issueList, err := s.redmine.FetchIssuesSince(ctx, s.cursor, 0, s.batch)
+	issueList, err := s.redmine.FetchIssuesSince(ctx, s.cursor, 0, s.batch, s.statusFilter)
 	if err != nil {
 		if ctx.Err() != nil {
 			// Context was cancelled — shutdown in progress, exit silently.

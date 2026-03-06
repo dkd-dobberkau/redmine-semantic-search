@@ -33,27 +33,28 @@ const (
 // The reconciler is driven by a cron schedule (default: "0 */6 * * *" = every
 // 6 hours) so it runs infrequently and does not compete with incremental sync.
 type Reconciler struct {
-	redmine *redmine.Client
-	qdrant  *qdrant.Client
-	cron    *cron.Cron
-	logger  *slog.Logger
+	redmine      *redmine.Client
+	qdrant       *qdrant.Client
+	statusFilter string
+	cron         *cron.Cron
+	logger       *slog.Logger
 }
 
 // NewReconciler creates a Reconciler with the given cron schedule expression.
 // The reconciler does NOT start until Start() is called.
-//
-// Returns an error if the schedule expression is invalid.
 func NewReconciler(
 	redmineClient *redmine.Client,
 	qdrantClient *qdrant.Client,
 	schedule string,
+	statusFilter string,
 	logger *slog.Logger,
 ) (*Reconciler, error) {
 	r := &Reconciler{
-		redmine: redmineClient,
-		qdrant:  qdrantClient,
-		cron:    cron.New(),
-		logger:  logger,
+		redmine:      redmineClient,
+		qdrant:       qdrantClient,
+		statusFilter: statusFilter,
+		cron:         cron.New(),
+		logger:       logger,
 	}
 
 	if _, err := r.cron.AddFunc(schedule, func() {
@@ -83,7 +84,7 @@ func (r *Reconciler) reconcile(ctx context.Context) {
 	r.logger.Info("reconcile: starting ID diff")
 
 	// Step 1: Fetch all current Redmine issue IDs.
-	redmineIDs, err := r.redmine.FetchAllIssueIDs(ctx)
+	redmineIDs, err := r.redmine.FetchAllIssueIDs(ctx, r.statusFilter)
 	if err != nil {
 		r.logger.Error("reconcile: failed to fetch Redmine issue IDs", "error", err)
 		return

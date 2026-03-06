@@ -42,6 +42,11 @@ type Config struct {
 	// Environment variable: EMBEDDING_MODEL
 	EmbeddingModel string `mapstructure:"embedding_model"`
 
+	// SyncStatusFilter controls which issue statuses are indexed.
+	// "open" = only open issues (Redmine default), "*" = all statuses.
+	// Default: "open". Environment variable: SYNC_STATUS_FILTER
+	SyncStatusFilter string `mapstructure:"sync_status_filter"`
+
 	// SyncInterval is the polling interval for incremental sync in minutes. Default: 5.
 	// Environment variable: SYNC_INTERVAL
 	SyncInterval int `mapstructure:"sync_interval"`
@@ -89,6 +94,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("embedding_model", "nomic-embed-text")
 
 	// Sync & indexer defaults.
+	viper.SetDefault("sync_status_filter", "open")
 	viper.SetDefault("sync_interval", 5)
 	viper.SetDefault("sync_batch_size", 100)
 	viper.SetDefault("reconcile_schedule", "0 */6 * * *")
