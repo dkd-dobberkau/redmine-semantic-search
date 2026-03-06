@@ -12,9 +12,6 @@
   .search-bar input { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
   .search-bar button { padding: 8px 16px; background: #4a90d9; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
   .search-bar button:hover { background: #357abd; }
-  .config { font-size: 12px; color: #888; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
-  .config input { padding: 4px 8px; border: 1px solid #ddd; border-radius: 3px; font-size: 12px; }
-  .config label { white-space: nowrap; }
   .meta { font-size: 13px; color: #666; margin-bottom: 12px; }
   .result { border-bottom: 1px solid #eee; padding: 12px 0; }
   .result:last-child { border-bottom: none; }
@@ -33,11 +30,6 @@
 
 <h1>Redmine Semantic Search</h1>
 
-<div class="config">
-  <label>API: <input id="api" type="text" value="http://localhost:9090" size="28"></label>
-  <label>Key: <input id="key" type="password" value="" size="32" placeholder="Redmine API Key"></label>
-</div>
-
 <div class="search-bar">
   <input id="q" type="text" placeholder="Search issues..." autofocus>
   <button onclick="search()">Search</button>
@@ -48,23 +40,30 @@
 
 <script>
 const $ = id => document.getElementById(id);
+let redmineUrl = '';
+let apiKey = '';
+
+// Load config from server on startup.
+fetch('/api/v1/config').then(r => r.json()).then(cfg => {
+  redmineUrl = cfg.redmine_url || '';
+  apiKey = cfg.api_key || '';
+}).catch(() => {});
 
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 
 async function search() {
   const q = $('q').value.trim();
   if (!q) return;
-  const api = $('api').value.trim();
-  const key = $('key').value.trim();
-  if (!key) { $('results').innerHTML = '<p class="error">Enter your Redmine API key above.</p>'; return; }
+  if (!apiKey) { $('results').innerHTML = '<p class="error">No API key configured.</p>'; return; }
 
   $('meta').textContent = 'Searching...';
   $('results').innerHTML = '';
 
   try {
-    const url = `${api}/api/v1/search?q=${encodeURIComponent(q)}&limit=20`;
-    const res = await fetch(url, { headers: { 'X-Redmine-API-Key': key } });
-    if (!res.ok) { throw new Error(`HTTP ${res.status}`); }
+    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=20`, {
+      headers: { 'X-Redmine-API-Key': apiKey }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
     $('meta').textContent = `${data.total} results (page ${data.page})`;
@@ -75,11 +74,10 @@ async function search() {
     }
 
     $('results').innerHTML = data.results.map(r => {
-      const redmineUrl = $('api').value.replace(/:\d+$/, '').replace(/localhost/, 'forge.typo3.org');
-      const issueUrl = `${api.includes('forge') ? api : 'https://forge.typo3.org'}/issues/${r.issue_id}`;
+      const issueUrl = redmineUrl ? `${redmineUrl}/issues/${r.issue_id}` : `#${r.issue_id}`;
       return `<div class="result">
         <div class="result-header">
-          <a href="${issueUrl}" target="_blank">#${r.issue_id} — ${esc(r.subject)}</a>
+          <a href="${esc(issueUrl)}" target="_blank">#${r.issue_id} — ${esc(r.subject)}</a>
           <span class="score">${(r.score * 100).toFixed(1)}%</span>
         </div>
         <p class="snippet">${esc(r.snippet)}</p>

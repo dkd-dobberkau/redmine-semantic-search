@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"os"
@@ -82,6 +83,14 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/search", authMiddleware.Wrap(searchHandler))
 	mux.HandleFunc("GET /api/v1/health", healthHandler.ServeHTTP)
+	mux.HandleFunc("GET /api/v1/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"redmine_url": cfg.RedmineURL,
+			"api_key":     cfg.RedmineAPIKey,
+		})
+	})
+	mux.Handle("GET /", http.FileServer(http.Dir("web")))
 
 	srv := &http.Server{
 		Addr:         cfg.ListenAddr,
