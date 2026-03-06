@@ -154,6 +154,7 @@ All settings can be configured via environment variables or `config.yml`:
 | Embedding Provider | `EMBEDDING_PROVIDER` | `ollama` | `ollama` or `tei` |
 | Embedding URL | `EMBEDDING_URL` | — | Embedding service URL |
 | Embedding Model | `EMBEDDING_MODEL` | `nomic-embed-text` | Ollama model name (ignored for TEI) |
+| Status Filter | `SYNC_STATUS_FILTER` | `open` | `open` or `*` (all statuses) |
 | Sync Interval | `SYNC_INTERVAL` | `5` | Polling interval in minutes |
 | Sync Batch Size | `SYNC_BATCH_SIZE` | `100` | Max issues per polling cycle |
 | Reconcile Schedule | `RECONCILE_SCHEDULE` | `0 */6 * * *` | Cron schedule for deletion reconciliation |

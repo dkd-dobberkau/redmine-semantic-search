@@ -37,32 +37,44 @@ qdrant_host: "localhost"
 qdrant_port: 6334
 
 # ---------------------------------------------------------------------------
-# Embedding Service (Text Embeddings Inference)
+# Embedding Service
 # ---------------------------------------------------------------------------
 
-# Base URL of the TEI (Text Embeddings Inference) service.
-# When using Docker Compose, use: http://redmine-search-embedding:80
-# For local development: http://localhost:8080
+# Embedding provider: "ollama" (default, native ARM64) or "tei" (HuggingFace TEI).
+# Ollama uses /api/embed, TEI uses /embed with different request formats.
+# Default: ollama. Env: EMBEDDING_PROVIDER
+embedding_provider: "ollama"
+
+# Base URL of the embedding service.
+# Ollama default: http://localhost:11434
+# TEI default: http://localhost:8080
 # Required. Env: EMBEDDING_URL
-embedding_url: "http://localhost:8080"
+embedding_url: "http://localhost:11434"
+
+# Model name for Ollama (e.g. "nomic-embed-text").
+# Ignored when embedding_provider is "tei".
+# Default: nomic-embed-text. Env: EMBEDDING_MODEL
+embedding_model: "nomic-embed-text"
 
 # ---------------------------------------------------------------------------
 # Sync & Indexer
 # ---------------------------------------------------------------------------
 
+# Status filter for issue indexing.
+# "open" = only open issues (smaller index, focused on active work).
+# "*" = all statuses including closed (full knowledge base).
+# Default: open. Env: SYNC_STATUS_FILTER
+sync_status_filter: "open"
+
 # Polling interval for incremental sync (minutes).
-# The indexer fetches issues updated since the last cursor and re-indexes them.
 # Default: 5. Env: SYNC_INTERVAL
 sync_interval: 5
 
 # Maximum number of issues fetched per polling cycle.
-# Issues are fetched in ascending updated_on order; more pages are picked up
-# on subsequent cycles. Default: 100. Env: SYNC_BATCH_SIZE
+# Default: 100. Env: SYNC_BATCH_SIZE
 sync_batch_size: 100
 
 # Cron expression for the deletion reconciliation job.
-# The reconciler fetches all issue IDs from Redmine and removes orphan Qdrant
-# points for deleted issues. Runs less frequently than incremental sync.
 # Default: every 6 hours. Env: RECONCILE_SCHEDULE
 reconcile_schedule: "0 */6 * * *"
 
@@ -70,13 +82,10 @@ reconcile_schedule: "0 */6 * * *"
 # Search Server
 # ---------------------------------------------------------------------------
 
-# HTTP server listen address for the search API.
+# HTTP server listen address for the search API and web UI.
 # Default: :8090. Env: LISTEN_ADDR
 listen_addr: ":8090"
 
 # TTL for permission cache entries (minutes).
-# Cached project IDs per API key are reused for this duration to reduce
-# Redmine API calls on repeated searches. Short TTL is a deliberate security
-# trade-off — changes in project membership take effect within one TTL period.
 # Default: 5. Env: PERMISSION_CACHE_TTL
 permission_cache_ttl: 5
