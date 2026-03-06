@@ -29,9 +29,18 @@ type Config struct {
 	// Environment variable: QDRANT_PORT
 	QdrantPort int `mapstructure:"qdrant_port"`
 
-	// EmbeddingURL is the base URL of the text embeddings inference service.
+	// EmbeddingProvider selects the embedding backend: "tei" or "ollama". Default: "ollama".
+	// Environment variable: EMBEDDING_PROVIDER
+	EmbeddingProvider string `mapstructure:"embedding_provider"`
+
+	// EmbeddingURL is the base URL of the embedding service.
 	// Required. Environment variable: EMBEDDING_URL
 	EmbeddingURL string `mapstructure:"embedding_url" validate:"required,url"`
+
+	// EmbeddingModel is the model name for Ollama (e.g. "nomic-embed-text").
+	// Only used when EmbeddingProvider is "ollama". Default: "nomic-embed-text".
+	// Environment variable: EMBEDDING_MODEL
+	EmbeddingModel string `mapstructure:"embedding_model"`
 
 	// SyncInterval is the polling interval for incremental sync in minutes. Default: 5.
 	// Environment variable: SYNC_INTERVAL
@@ -75,7 +84,9 @@ func Load() (*Config, error) {
 	viper.SetDefault("redmine_api_key", "")
 	viper.SetDefault("qdrant_host", "")
 	viper.SetDefault("qdrant_port", 6334)
+	viper.SetDefault("embedding_provider", "ollama")
 	viper.SetDefault("embedding_url", "")
+	viper.SetDefault("embedding_model", "nomic-embed-text")
 
 	// Sync & indexer defaults.
 	viper.SetDefault("sync_interval", 5)

@@ -62,16 +62,30 @@ func (e *TEIEmbedder) EmbedQuery(ctx context.Context, text string) ([]float32, e
 	return vecs[0], nil
 }
 
-// embed sends a POST request to the TEI /embed endpoint with the given inputs
-// and decodes the response as [][]float32.
-//
-// Error messages distinguish between network failures, non-200 status codes,
-// and JSON decode errors. Non-200 responses include the HTTP status and the
-// response body (TEI returns error details there).
-//
-// Retry logic is intentionally absent — the caller is responsible for retry
-// (TEI cold-start handling is done at the benchmark/integration level).
+// maxBatchSize is the maximum number of texts sent in a single TEI request.
+// TEI's default max-client-batch-size is 32.
+const maxBatchSize = 32
+
+// embed splits inputs into batches of maxBatchSize and calls the TEI /embed
+// endpoint for each batch, concatenating the results.
 func (e *TEIEmbedder) embed(ctx context.Context, inputs []string) ([][]float32, error) {
+	var all [][]float32
+	for i := 0; i < len(inputs); i += maxBatchSize {
+		end := i + maxBatchSize
+		if end > len(inputs) {
+			end = len(inputs)
+		}
+		batch, err := e.embedBatch(ctx, inputs[i:end])
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, batch...)
+	}
+	return all, nil
+}
+
+// embedBatch sends a single POST request to the TEI /embed endpoint.
+func (e *TEIEmbedder) embedBatch(ctx context.Context, inputs []string) ([][]float32, error) {
 	body, err := json.Marshal(map[string]any{"inputs": inputs})
 	if err != nil {
 		return nil, fmt.Errorf("TEI embed: marshal request: %w", err)
@@ -90,7 +104,6 @@ func (e *TEIEmbedder) embed(ctx context.Context, inputs []string) ([][]float32, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Read the body — TEI returns error details in the response body.
 		errBody, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
 			return nil, fmt.Errorf("TEI embed: unexpected status %d (and could not read response body: %v)", resp.StatusCode, readErr)

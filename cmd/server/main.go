@@ -51,8 +51,17 @@ func main() {
 	}
 	defer qdrantClient.Close()
 
-	// Create TEI embedder for vectorizing search queries.
-	teiEmbedder := embedder.NewTEIEmbedder(cfg.EmbeddingURL)
+	// Create the embedder based on configured provider.
+	var emb embedder.Embedder
+	switch cfg.EmbeddingProvider {
+	case "tei":
+		emb = embedder.NewTEIEmbedder(cfg.EmbeddingURL)
+	case "ollama":
+		emb = embedder.NewOllamaEmbedder(cfg.EmbeddingURL, cfg.EmbeddingModel)
+	default:
+		logger.Error("unknown embedding provider", "provider", cfg.EmbeddingProvider)
+		os.Exit(1)
+	}
 
 	// Create Redmine client for user validation and project lookup.
 	redmineClient := redmine.NewClient(cfg.RedmineURL, cfg.RedmineAPIKey)
@@ -65,8 +74,8 @@ func main() {
 	authMiddleware := auth.NewAuthMiddleware(permCache, logger)
 
 	// Create handlers.
-	searchHandler := search.NewSearchHandler(teiEmbedder, qdrantClient, logger)
-	healthHandler := search.NewHealthHandler(qdrantClient, cfg.EmbeddingURL, logger)
+	searchHandler := search.NewSearchHandler(emb, qdrantClient, logger)
+	healthHandler := search.NewHealthHandler(qdrantClient, cfg.EmbeddingURL, cfg.EmbeddingProvider, logger)
 
 	// Register routes using Go 1.22 method+path pattern syntax.
 	// Search requires auth; health is intentionally public for monitoring.

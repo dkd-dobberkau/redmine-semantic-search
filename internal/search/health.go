@@ -14,26 +14,31 @@ import (
 const embeddingHealthTimeout = 5 * time.Second
 
 // HealthHandler serves the GET /api/v1/health endpoint. It checks both the
-// Qdrant gRPC service and the TEI embedding HTTP service, and returns a JSON
+// Qdrant gRPC service and the embedding HTTP service, and returns a JSON
 // response with component-level statuses and an overall health status.
 //
 // This endpoint is intentionally unauthenticated so that monitoring systems
 // and Docker health checks can poll it without credentials.
 type HealthHandler struct {
-	qdrant       *qdrant.Client
-	embeddingURL string
-	logger       *slog.Logger
-	httpClient   *http.Client
+	qdrant             *qdrant.Client
+	embeddingHealthURL string
+	logger             *slog.Logger
+	httpClient         *http.Client
 }
 
 // NewHealthHandler creates a HealthHandler that checks the given Qdrant client
-// and TEI embedding service URL.
-func NewHealthHandler(qdrantClient *qdrant.Client, embeddingURL string, logger *slog.Logger) *HealthHandler {
+// and embedding service. The embeddingProvider determines the health check path:
+// "tei" uses /health, "ollama" uses / (root).
+func NewHealthHandler(qdrantClient *qdrant.Client, embeddingURL string, embeddingProvider string, logger *slog.Logger) *HealthHandler {
+	healthPath := "/health"
+	if embeddingProvider == "ollama" {
+		healthPath = "/"
+	}
 	return &HealthHandler{
-		qdrant:       qdrantClient,
-		embeddingURL: embeddingURL,
-		logger:       logger,
-		httpClient:   &http.Client{Timeout: embeddingHealthTimeout},
+		qdrant:             qdrantClient,
+		embeddingHealthURL: embeddingURL + healthPath,
+		logger:             logger,
+		httpClient:         &http.Client{Timeout: embeddingHealthTimeout},
 	}
 }
 
@@ -95,8 +100,7 @@ func (h *HealthHandler) checkQdrant(ctx context.Context) ComponentHealth {
 // checkEmbedding verifies TEI embedding service connectivity by issuing a GET
 // request to the /health endpoint with a 5-second timeout.
 func (h *HealthHandler) checkEmbedding(ctx context.Context) ComponentHealth {
-	url := h.embeddingURL + "/health"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.embeddingHealthURL, nil)
 	if err != nil {
 		return ComponentHealth{
 			Status:  "error",

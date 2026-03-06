@@ -54,14 +54,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Step 5: Create the TEI embedder.
-	teiEmbedder := embedder.NewTEIEmbedder(cfg.EmbeddingURL)
+	// Step 5: Create the embedder based on configured provider.
+	var emb embedder.Embedder
+	switch cfg.EmbeddingProvider {
+	case "tei":
+		emb = embedder.NewTEIEmbedder(cfg.EmbeddingURL)
+	case "ollama":
+		emb = embedder.NewOllamaEmbedder(cfg.EmbeddingURL, cfg.EmbeddingModel)
+	default:
+		logger.Error("unknown embedding provider", "provider", cfg.EmbeddingProvider)
+		os.Exit(1)
+	}
 
 	// Step 6: Create the Redmine client.
 	redmineClient := redmine.NewClient(cfg.RedmineURL, cfg.RedmineAPIKey)
 
 	// Step 7: Create the indexing pipeline.
-	pipeline := indexer.NewPipeline(teiEmbedder, qdrantClient, logger)
+	pipeline := indexer.NewPipeline(emb, qdrantClient, logger)
 
 	// Step 8: Create the incremental syncer.
 	syncer := indexer.NewSyncer(
