@@ -31,6 +31,15 @@ type chunkEntry struct {
 	text       string
 }
 
+// journalChunkEntry holds all data for a single chunk derived from a journal.
+type journalChunkEntry struct {
+	issue      redmine.Issue
+	journal    redmine.Journal
+	chunkIndex int
+	chunkTotal int
+	text       string
+}
+
 // Pipeline transforms Redmine issues into Qdrant vectors.
 // Dependencies are injected via the struct to allow easy testing.
 type Pipeline struct {
@@ -168,6 +177,121 @@ func (p *Pipeline) DeleteIssueChunks(ctx context.Context, redmineID int) error {
 	})
 	if err != nil {
 		return fmt.Errorf("delete chunks for redmine_id %d: %w", redmineID, err)
+	}
+	return nil
+}
+
+// IndexJournals indexes journal entries for a single issue into Qdrant.
+// Each journal with non-empty notes becomes its own set of vector chunks with
+// content_type "journal", linked back to the parent issue via redmine_id.
+func (p *Pipeline) IndexJournals(ctx context.Context, issue redmine.Issue, journals []redmine.Journal) error {
+	if len(journals) == 0 {
+		return nil
+	}
+
+	// Delete all existing journal chunks for this issue before re-upserting.
+	if err := p.DeleteJournalChunks(ctx, issue.ID); err != nil {
+		return fmt.Errorf("delete existing journal chunks for issue %d: %w", issue.ID, err)
+	}
+
+	var entries []journalChunkEntry
+	for _, j := range journals {
+		// Prefix with issue subject for context when searching.
+		noteText := text.StripMarkup(j.Notes)
+		if noteText == "" {
+			continue
+		}
+		fullText := issue.Subject + "\n\n" + noteText
+		chunks := text.ChunkText(fullText)
+		chunkTotal := len(chunks)
+		for i, chunk := range chunks {
+			entries = append(entries, journalChunkEntry{
+				issue:      issue,
+				journal:    j,
+				chunkIndex: i,
+				chunkTotal: chunkTotal,
+				text:       chunk,
+			})
+		}
+	}
+
+	if len(entries) == 0 {
+		return nil
+	}
+
+	chunkTexts := make([]string, len(entries))
+	for i, e := range entries {
+		chunkTexts[i] = e.text
+	}
+
+	embeddings, err := p.embedder.EmbedPassages(ctx, chunkTexts)
+	if err != nil {
+		return fmt.Errorf("embed journal passages: %w", err)
+	}
+	if len(embeddings) != len(entries) {
+		return fmt.Errorf("journal embedding count mismatch: got %d, want %d", len(embeddings), len(entries))
+	}
+
+	points := make([]*qdrant.PointStruct, len(entries))
+	for i, e := range entries {
+		chunkID := qdrantpkg.JournalChunkPointID(e.journal.ID, e.chunkIndex)
+		points[i] = &qdrant.PointStruct{
+			Id:      qdrant.NewIDUUID(chunkID),
+			Vectors: qdrant.NewVectors(embeddings[i]...),
+			Payload: qdrant.NewValueMap(map[string]any{
+				"redmine_id":    e.issue.ID,
+				"journal_id":    e.journal.ID,
+				"content_type":  "journal",
+				"project_id":    e.issue.Project.ID,
+				"tracker":       e.issue.Tracker.Name,
+				"status":        e.issue.Status.Name,
+				"author":        e.journal.User.Name,
+				"author_id":     e.journal.User.ID,
+				"subject":       e.issue.Subject,
+				"is_private":    e.journal.PrivateNotes,
+				"text_preview":  truncate(e.text, 500),
+				"chunk_index":   e.chunkIndex,
+				"chunk_total":   e.chunkTotal,
+				"created_on":    e.journal.CreatedOn,
+				"updated_on":    e.journal.CreatedOn,
+			}),
+		}
+	}
+
+	trueVal := true
+	for start := 0; start < len(points); start += upsertBatchSize {
+		end := start + upsertBatchSize
+		if end > len(points) {
+			end = len(points)
+		}
+		if _, err := p.qdrant.Upsert(ctx, &qdrant.UpsertPoints{
+			CollectionName: qdrantpkg.AliasName,
+			Wait:           &trueVal,
+			Points:         points[start:end],
+		}); err != nil {
+			return fmt.Errorf("upsert journal points (batch %d-%d): %w", start, end-1, err)
+		}
+	}
+
+	p.logger.Info("indexed journals", "issue_id", issue.ID, "journals", len(journals), "chunks", len(entries))
+	return nil
+}
+
+// DeleteJournalChunks removes all existing journal Qdrant points for a given issue.
+func (p *Pipeline) DeleteJournalChunks(ctx context.Context, redmineID int) error {
+	trueVal := true
+	_, err := p.qdrant.Delete(ctx, &qdrant.DeletePoints{
+		CollectionName: qdrantpkg.AliasName,
+		Wait:           &trueVal,
+		Points: qdrant.NewPointsSelectorFilter(&qdrant.Filter{
+			Must: []*qdrant.Condition{
+				qdrant.NewMatch("content_type", "journal"),
+				qdrant.NewMatchInt("redmine_id", int64(redmineID)),
+			},
+		}),
+	})
+	if err != nil {
+		return fmt.Errorf("delete journal chunks for redmine_id %d: %w", redmineID, err)
 	}
 	return nil
 }

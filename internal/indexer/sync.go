@@ -127,6 +127,28 @@ func (s *Syncer) poll(ctx context.Context) {
 		return
 	}
 
+	// Fetch and index journals for each issue in this batch.
+	for _, issue := range issueList.Issues {
+		detail, err := s.redmine.FetchIssueWithJournals(ctx, issue.ID)
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			s.logger.Warn("sync: fetch journals failed", "issue_id", issue.ID, "error", err)
+			continue // non-fatal: skip journals for this issue
+		}
+		if len(detail.Journals) == 0 {
+			continue
+		}
+		if err := s.pipeline.IndexJournals(ctx, issue, detail.Journals); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			s.logger.Warn("sync: index journals failed", "issue_id", issue.ID, "error", err)
+			// non-fatal: continue with next issue
+		}
+	}
+
 	// Advance cursor to the max updated_on timestamp from this batch.
 	newCursor := s.maxUpdatedOn(issueList.Issues)
 	s.cursor = newCursor

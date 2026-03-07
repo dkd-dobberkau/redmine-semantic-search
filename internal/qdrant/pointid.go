@@ -45,3 +45,11 @@ func ChunkPointID(redmineID, chunkIndex int) string {
 	key := fmt.Sprintf("issue:%d:chunk:%d", redmineID, chunkIndex)
 	return uuid.NewSHA1(PointIDNamespace, []byte(key)).String()
 }
+
+// JournalChunkPointID returns a deterministic UUID v5 string for a specific chunk
+// of a Redmine journal entry. The key format "journal:<id>:chunk:<index>" ensures
+// no overlap with issue chunk keys.
+func JournalChunkPointID(journalID, chunkIndex int) string {
+	key := fmt.Sprintf("journal:%d:chunk:%d", journalID, chunkIndex)
+	return uuid.NewSHA1(PointIDNamespace, []byte(key)).String()
+}

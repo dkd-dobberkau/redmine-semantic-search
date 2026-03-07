@@ -28,6 +28,7 @@
   .snippet { font-size: 13px; color: #555; margin-top: 4px; line-height: 1.4; }
   .tags { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
   .tag { font-size: 11px; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; color: #666; }
+  .tag-journal { background: #e8f0fe; color: #1a73e8; }
   .similar-link { font-size: 11px; color: #4a90d9; cursor: pointer; text-decoration: none; margin-left: auto; }
   .similar-link:hover { text-decoration: underline; }
   .error { color: #c00; font-size: 13px; }
@@ -217,13 +218,20 @@ function goBack() {
 function renderResults(results) {
   $('results').innerHTML = results.map(r => {
     const issueUrl = redmineUrl ? redmineUrl + '/issues/' + r.issue_id : '#' + r.issue_id;
+    const isJournal = r.content_type === 'journal';
+    const journalAnchor = isJournal && r.journal_id ? '#note-' + r.journal_id : '';
+    const linkUrl = issueUrl + journalAnchor;
+    const typeTag = isJournal
+      ? '<span class="tag tag-journal">Comment</span>'
+      : '<span class="tag">Issue</span>';
     return '<div class="result">' +
       '<div class="result-header">' +
-        '<a href="' + esc(issueUrl) + '" target="_blank">#' + r.issue_id + ' \u2014 ' + esc(r.subject) + '</a>' +
+        '<a href="' + esc(linkUrl) + '" target="_blank">#' + r.issue_id + ' \u2014 ' + esc(r.subject) + '</a>' +
         '<span class="score">' + (r.score * 100).toFixed(1) + '%</span>' +
       '</div>' +
       '<p class="snippet">' + esc(r.snippet) + '</p>' +
       '<div class="tags">' +
+        typeTag +
         '<span class="tag">' + esc(r.tracker) + '</span>' +
         '<span class="tag">' + esc(r.status) + '</span>' +
         '<span class="tag">' + esc(r.author) + '</span>' +

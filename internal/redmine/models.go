@@ -25,6 +25,27 @@ type Issue struct {
 	UpdatedOn   string  `json:"updated_on"`
 }
 
+// Journal represents a single journal entry (comment/note) on a Redmine issue.
+type Journal struct {
+	ID           int    `json:"id"`
+	User         IDRef  `json:"user"`
+	Notes        string `json:"notes"`
+	CreatedOn    string `json:"created_on"`
+	PrivateNotes bool   `json:"private_notes"`
+}
+
+// IssueDetail is the full issue representation returned by GET /issues/:id.json
+// when include=journals is requested.
+type IssueDetail struct {
+	Issue
+	Journals []Journal `json:"journals"`
+}
+
+// IssueDetailResponse is the JSON envelope for GET /issues/:id.json.
+type IssueDetailResponse struct {
+	Issue IssueDetail `json:"issue"`
+}
+
 // IssueList is the paginated envelope returned by GET /issues.json.
 type IssueList struct {
 	Issues     []Issue `json:"issues"`

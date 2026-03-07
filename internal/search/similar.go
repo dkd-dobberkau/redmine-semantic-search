@@ -61,7 +61,7 @@ func (h *SimilarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Filter: permFilter,
 		Limit:  &fetchLimit,
 		WithPayload: qdrant.NewWithPayloadInclude(
-			"redmine_id", "subject", "tracker", "status",
+			"redmine_id", "journal_id", "content_type", "subject", "tracker", "status",
 			"project_id", "author", "author_id", "is_private",
 			"text_preview", "chunk_index", "chunk_total",
 		),
@@ -115,15 +115,21 @@ func (h *SimilarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	results := make([]SearchResult, 0, len(deduped))
 	for _, pt := range deduped {
+		contentType := extractPayloadString(pt, "content_type")
+		if contentType == "" {
+			contentType = "issue"
+		}
 		results = append(results, SearchResult{
-			IssueID:   extractPayloadInt(pt, "redmine_id"),
-			Subject:   extractPayloadString(pt, "subject"),
-			Score:     pt.Score,
-			Snippet:   truncateSnippet(extractPayloadString(pt, "text_preview"), snippetMaxLen),
-			Tracker:   extractPayloadString(pt, "tracker"),
-			Status:    extractPayloadString(pt, "status"),
-			ProjectID: extractPayloadInt(pt, "project_id"),
-			Author:    extractPayloadString(pt, "author"),
+			IssueID:     extractPayloadInt(pt, "redmine_id"),
+			Subject:     extractPayloadString(pt, "subject"),
+			Score:       pt.Score,
+			Snippet:     truncateSnippet(extractPayloadString(pt, "text_preview"), snippetMaxLen),
+			Tracker:     extractPayloadString(pt, "tracker"),
+			Status:      extractPayloadString(pt, "status"),
+			ProjectID:   extractPayloadInt(pt, "project_id"),
+			Author:      extractPayloadString(pt, "author"),
+			ContentType: contentType,
+			JournalID:   extractPayloadInt(pt, "journal_id"),
 		})
 	}
 

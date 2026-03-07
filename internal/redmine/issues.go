@@ -27,6 +27,30 @@ func (c *Client) FetchIssuesSince(ctx context.Context, since time.Time, offset, 
 	return &list, nil
 }
 
+// FetchIssueWithJournals returns a single issue with its journal entries.
+// Only journals with non-empty notes are included in the result.
+func (c *Client) FetchIssueWithJournals(ctx context.Context, issueID int) (*IssueDetail, error) {
+	params := url.Values{}
+	params.Set("include", "journals")
+
+	var resp IssueDetailResponse
+	path := fmt.Sprintf("/issues/%d.json", issueID)
+	if err := c.doJSONWithAdminKey(ctx, path, params, &resp); err != nil {
+		return nil, err
+	}
+
+	// Filter out journals without notes (pure status-change entries).
+	filtered := resp.Issue.Journals[:0]
+	for _, j := range resp.Issue.Journals {
+		if j.Notes != "" {
+			filtered = append(filtered, j)
+		}
+	}
+	resp.Issue.Journals = filtered
+
+	return &resp.Issue, nil
+}
+
 // FetchAllIssueIDs returns the IDs of all issues matching the given statusFilter,
 // sorted ascending by ID. Used for deletion reconciliation.
 func (c *Client) FetchAllIssueIDs(ctx context.Context, statusFilter string) ([]int, error) {

@@ -55,14 +55,16 @@ type SearchResponse struct {
 
 // SearchResult represents a single search hit in the API response.
 type SearchResult struct {
-	IssueID   int     `json:"issue_id"`
-	Subject   string  `json:"subject"`
-	Score     float32 `json:"score"`
-	Snippet   string  `json:"snippet"`
-	Tracker   string  `json:"tracker,omitempty"`
-	Status    string  `json:"status,omitempty"`
-	ProjectID int     `json:"project_id"`
-	Author    string  `json:"author,omitempty"`
+	IssueID     int     `json:"issue_id"`
+	Subject     string  `json:"subject"`
+	Score       float32 `json:"score"`
+	Snippet     string  `json:"snippet"`
+	Tracker     string  `json:"tracker,omitempty"`
+	Status      string  `json:"status,omitempty"`
+	ProjectID   int     `json:"project_id"`
+	Author      string  `json:"author,omitempty"`
+	ContentType string  `json:"content_type"`
+	JournalID   int     `json:"journal_id,omitempty"`
 }
 
 // ServeHTTP handles GET /api/v1/search.
@@ -143,7 +145,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Filter:         permFilter,
 		Limit:          &fetchLimit,
 		WithPayload: qdrant.NewWithPayloadInclude(
-			"redmine_id", "subject", "tracker", "status",
+			"redmine_id", "journal_id", "content_type", "subject", "tracker", "status",
 			"project_id", "author", "author_id", "is_private",
 			"text_preview", "chunk_index", "chunk_total",
 		),
@@ -165,16 +167,27 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		filtered = append(filtered, pt)
 	}
 
-	// Deduplicate multi-chunk results: keep only the highest-scoring chunk per issue.
-	type issueEntry struct {
+	// Deduplicate multi-chunk results: keep only the highest-scoring chunk per
+	// (issue, content_type) pair. This means an issue hit and a journal hit for
+	// the same issue are both kept — they represent different content.
+	type dedupKey struct {
+		issueID     int
+		contentType string
+		journalID   int
+	}
+	type dedupEntry struct {
 		point *qdrant.ScoredPoint
 		score float32
 	}
-	seen := make(map[int]issueEntry)
+	seen := make(map[dedupKey]dedupEntry)
 	for _, pt := range filtered {
-		issueID := extractPayloadInt(pt, "redmine_id")
-		if existing, ok := seen[issueID]; !ok || pt.Score > existing.score {
-			seen[issueID] = issueEntry{point: pt, score: pt.Score}
+		key := dedupKey{
+			issueID:     extractPayloadInt(pt, "redmine_id"),
+			contentType: extractPayloadString(pt, "content_type"),
+			journalID:   extractPayloadInt(pt, "journal_id"),
+		}
+		if existing, ok := seen[key]; !ok || pt.Score > existing.score {
+			seen[key] = dedupEntry{point: pt, score: pt.Score}
 		}
 	}
 
@@ -209,15 +222,21 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Build search results.
 	results := make([]SearchResult, 0, len(pageResults))
 	for _, pt := range pageResults {
+		contentType := extractPayloadString(pt, "content_type")
+		if contentType == "" {
+			contentType = "issue" // backward compat for pre-journal points
+		}
 		results = append(results, SearchResult{
-			IssueID:   extractPayloadInt(pt, "redmine_id"),
-			Subject:   extractPayloadString(pt, "subject"),
-			Score:     pt.Score,
-			Snippet:   truncateSnippet(extractPayloadString(pt, "text_preview"), snippetMaxLen),
-			Tracker:   extractPayloadString(pt, "tracker"),
-			Status:    extractPayloadString(pt, "status"),
-			ProjectID: extractPayloadInt(pt, "project_id"),
-			Author:    extractPayloadString(pt, "author"),
+			IssueID:     extractPayloadInt(pt, "redmine_id"),
+			Subject:     extractPayloadString(pt, "subject"),
+			Score:       pt.Score,
+			Snippet:     truncateSnippet(extractPayloadString(pt, "text_preview"), snippetMaxLen),
+			Tracker:     extractPayloadString(pt, "tracker"),
+			Status:      extractPayloadString(pt, "status"),
+			ProjectID:   extractPayloadInt(pt, "project_id"),
+			Author:      extractPayloadString(pt, "author"),
+			ContentType: contentType,
+			JournalID:   extractPayloadInt(pt, "journal_id"),
 		})
 	}
 
