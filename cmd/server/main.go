@@ -83,6 +83,17 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/search", authMiddleware.Wrap(searchHandler))
 	mux.HandleFunc("GET /api/v1/health", healthHandler.ServeHTTP)
+	similarHandler := search.NewSimilarHandler(qdrantClient, logger)
+	mux.Handle("GET /api/v1/similar", authMiddleware.Wrap(similarHandler))
+	mux.HandleFunc("GET /api/v1/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		info, err := qdrantClient.GetCollectionInfo(r.Context(), "redmine_search_v1")
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]any{"indexed_issues": 0})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"indexed_issues": info.GetPointsCount()})
+	})
 	mux.HandleFunc("GET /api/v1/config", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{

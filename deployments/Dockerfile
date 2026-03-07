@@ -15,8 +15,9 @@ RUN apk add --no-cache ca-certificates curl && \
 WORKDIR /app
 COPY --from=builder /app/indexer /app/server ./
 COPY --chown=appuser:appuser web/ ./web/
+RUN printf '#!/bin/sh\n./server &\nexec ./indexer\n' > ./entrypoint.sh && chmod +x ./entrypoint.sh
 USER appuser
 EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8090/api/v1/health || exit 1
-CMD ["./indexer"]
+CMD ["./entrypoint.sh"]

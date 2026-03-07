@@ -8,10 +8,16 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }
   h1 { font-size: 1.3em; margin-bottom: 16px; }
-  .search-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .search-bar { display: flex; gap: 8px; margin-bottom: 8px; }
   .search-bar input { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
   .search-bar button { padding: 8px 16px; background: #4a90d9; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
   .search-bar button:hover { background: #357abd; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+  .filters select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; color: #555; background: #fff; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .presets button { padding: 4px 10px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 12px; cursor: pointer; font-size: 12px; color: #555; }
+  .presets button:hover { background: #e8e8e8; border-color: #bbb; }
+  .stats { font-size: 13px; color: #999; margin-bottom: 12px; }
   .meta { font-size: 13px; color: #666; margin-bottom: 12px; }
   .result { border-bottom: 1px solid #eee; padding: 12px 0; }
   .result:last-child { border-bottom: none; }
@@ -20,10 +26,14 @@
   .result a:hover { text-decoration: underline; }
   .score { font-size: 12px; color: #999; white-space: nowrap; }
   .snippet { font-size: 13px; color: #555; margin-top: 4px; line-height: 1.4; }
-  .tags { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .tags { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
   .tag { font-size: 11px; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; color: #666; }
+  .similar-link { font-size: 11px; color: #4a90d9; cursor: pointer; text-decoration: none; margin-left: auto; }
+  .similar-link:hover { text-decoration: underline; }
   .error { color: #c00; font-size: 13px; }
   .empty { color: #999; font-size: 13px; }
+  .back-link { font-size: 13px; color: #4a90d9; cursor: pointer; text-decoration: none; margin-bottom: 12px; display: none; }
+  .back-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -35,6 +45,33 @@
   <button onclick="search()">Search</button>
 </div>
 
+<div class="filters">
+  <select id="f-status">
+    <option value="">All statuses</option>
+  </select>
+  <select id="f-tracker">
+    <option value="">All trackers</option>
+  </select>
+  <select id="f-author">
+    <option value="">All authors</option>
+  </select>
+</div>
+
+<div class="presets">
+  <button onclick="preset('performance problems and slow queries')">Performance</button>
+  <button onclick="preset('security vulnerability or exploit')">Security</button>
+  <button onclick="preset('migration upgrade breaking changes')">Migrations</button>
+  <button onclick="preset('error crash exception fatal failure')">Errors/Crashes</button>
+  <button onclick="preset('documentation missing or outdated')">Missing Docs</button>
+  <button onclick="preset('regression bug that was previously fixed')">Regressions</button>
+  <button onclick="preset('deprecation removed feature')">Deprecations</button>
+  <button onclick="preset('accessibility WCAG screen reader a11y')">Accessibility</button>
+  <button onclick="preset('localization translation i18n language')">i18n</button>
+  <button onclick="preset('user interface usability UX confusing')">UX Issues</button>
+</div>
+
+<div id="stats" class="stats"></div>
+<a id="back" class="back-link" onclick="goBack()">&larr; Back to search results</a>
 <div id="meta" class="meta"></div>
 <div id="results"></div>
 
@@ -42,59 +79,162 @@
 const $ = id => document.getElementById(id);
 let redmineUrl = '';
 let apiKey = '';
+let lastSearchQuery = '';
 
-// Load config from server on startup.
 fetch('/api/v1/config').then(r => r.json()).then(cfg => {
   redmineUrl = cfg.redmine_url || '';
   apiKey = cfg.api_key || '';
 }).catch(() => {});
 
+fetch('/api/v1/stats').then(r => r.json()).then(data => {
+  if (data.indexed_issues > 0) {
+    $('stats').textContent = data.indexed_issues.toLocaleString() + ' issues indexed';
+  }
+}).catch(() => {});
+
+// Populate filter dropdowns from facets (run a wildcard-ish search to get all facets).
+function loadFacets() {
+  if (!apiKey) return;
+  fetch('/api/v1/search?q=issue&limit=1', {
+    headers: { 'X-Redmine-API-Key': apiKey }
+  }).then(r => r.json()).then(data => {
+    if (!data.facets) return;
+    if (data.facets.statuses) {
+      data.facets.statuses.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.value;
+        opt.textContent = f.value + ' (' + f.count + ')';
+        $('f-status').appendChild(opt);
+      });
+    }
+    if (data.facets.trackers) {
+      data.facets.trackers.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.value;
+        opt.textContent = f.value + ' (' + f.count + ')';
+        $('f-tracker').appendChild(opt);
+      });
+    }
+    if (data.facets.authors) {
+      data.facets.authors.slice(0, 30).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.value;
+        opt.textContent = f.value + ' (' + f.count + ')';
+        $('f-author').appendChild(opt);
+      });
+    }
+  }).catch(() => {});
+}
+
+// Reload facets when config is ready.
+setTimeout(loadFacets, 500);
+
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+// Re-search when filters change.
+$('f-status').addEventListener('change', () => { if ($('q').value.trim()) search(); });
+$('f-tracker').addEventListener('change', () => { if ($('q').value.trim()) search(); });
+$('f-author').addEventListener('change', () => { if ($('q').value.trim()) search(); });
+
+function getFilterParams() {
+  let params = '';
+  const status = $('f-status').value;
+  const tracker = $('f-tracker').value;
+  const author = $('f-author').value;
+  if (status) params += '&status=' + encodeURIComponent(status);
+  if (tracker) params += '&tracker=' + encodeURIComponent(tracker);
+  if (author) params += '&author=' + encodeURIComponent(author);
+  return params;
+}
+
+function preset(query) {
+  $('q').value = query;
+  search();
+}
 
 async function search() {
   const q = $('q').value.trim();
   if (!q) return;
   if (!apiKey) { $('results').innerHTML = '<p class="error">No API key configured.</p>'; return; }
 
+  lastSearchQuery = q;
+  $('back').style.display = 'none';
   $('meta').textContent = 'Searching...';
   $('results').innerHTML = '';
 
   try {
-    const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=20`, {
+    const res = await fetch('/api/v1/search?q=' + encodeURIComponent(q) + '&limit=20' + getFilterParams(), {
       headers: { 'X-Redmine-API-Key': apiKey }
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
 
-    $('meta').textContent = `${data.total} results (page ${data.page})`;
-
+    $('meta').textContent = data.total + ' results (page ' + data.page + ')';
     if (!data.results || data.results.length === 0) {
       $('results').innerHTML = '<p class="empty">No results found.</p>';
       return;
     }
-
-    $('results').innerHTML = data.results.map(r => {
-      const issueUrl = redmineUrl ? `${redmineUrl}/issues/${r.issue_id}` : `#${r.issue_id}`;
-      return `<div class="result">
-        <div class="result-header">
-          <a href="${esc(issueUrl)}" target="_blank">#${r.issue_id} — ${esc(r.subject)}</a>
-          <span class="score">${(r.score * 100).toFixed(1)}%</span>
-        </div>
-        <p class="snippet">${esc(r.snippet)}</p>
-        <div class="tags">
-          <span class="tag">${esc(r.tracker)}</span>
-          <span class="tag">${esc(r.status)}</span>
-          <span class="tag">${esc(r.author)}</span>
-        </div>
-      </div>`;
-    }).join('');
+    renderResults(data.results);
   } catch (e) {
     $('meta').textContent = '';
-    $('results').innerHTML = `<p class="error">Error: ${esc(e.message)}</p>`;
+    $('results').innerHTML = '<p class="error">Error: ' + esc(e.message) + '</p>';
   }
 }
 
+async function findSimilar(issueId, subject) {
+  if (!apiKey) return;
+
+  $('back').style.display = 'block';
+  $('meta').textContent = 'Finding issues similar to #' + issueId + '...';
+  $('results').innerHTML = '';
+
+  try {
+    const res = await fetch('/api/v1/similar?issue_id=' + issueId + '&limit=20', {
+      headers: { 'X-Redmine-API-Key': apiKey }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+
+    $('meta').textContent = data.total + ' issues similar to #' + issueId + ' \u2014 ' + esc(subject);
+    if (!data.results || data.results.length === 0) {
+      $('results').innerHTML = '<p class="empty">No similar issues found.</p>';
+      return;
+    }
+    renderResults(data.results);
+  } catch (e) {
+    $('meta').textContent = '';
+    $('results').innerHTML = '<p class="error">Error: ' + esc(e.message) + '</p>';
+  }
+}
+
+function goBack() {
+  $('back').style.display = 'none';
+  if (lastSearchQuery) {
+    $('q').value = lastSearchQuery;
+    search();
+  }
+}
+
+function renderResults(results) {
+  $('results').innerHTML = results.map(r => {
+    const issueUrl = redmineUrl ? redmineUrl + '/issues/' + r.issue_id : '#' + r.issue_id;
+    return '<div class="result">' +
+      '<div class="result-header">' +
+        '<a href="' + esc(issueUrl) + '" target="_blank">#' + r.issue_id + ' \u2014 ' + esc(r.subject) + '</a>' +
+        '<span class="score">' + (r.score * 100).toFixed(1) + '%</span>' +
+      '</div>' +
+      '<p class="snippet">' + esc(r.snippet) + '</p>' +
+      '<div class="tags">' +
+        '<span class="tag">' + esc(r.tracker) + '</span>' +
+        '<span class="tag">' + esc(r.status) + '</span>' +
+        '<span class="tag">' + esc(r.author) + '</span>' +
+        '<a class="similar-link" onclick="findSimilar(' + r.issue_id + ', \'' + escAttr(r.subject) + '\')">Find similar</a>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
 function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function escAttr(s) { return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
 </script>
 
 </body>
