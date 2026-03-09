@@ -85,6 +85,7 @@ let lastSearchQuery = '';
 fetch('/api/v1/config').then(r => r.json()).then(cfg => {
   redmineUrl = cfg.redmine_url || '';
   apiKey = cfg.api_key || '';
+  loadFacets();
 }).catch(() => {});
 
 fetch('/api/v1/stats').then(r => r.json()).then(data => {
@@ -127,8 +128,7 @@ function loadFacets() {
   }).catch(() => {});
 }
 
-// Reload facets when config is ready.
-setTimeout(loadFacets, 500);
+// loadFacets() is called after config is loaded (see fetch above).
 
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 // Re-search when filters change.
