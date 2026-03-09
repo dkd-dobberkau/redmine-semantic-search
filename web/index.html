@@ -94,37 +94,40 @@ fetch('/api/v1/stats').then(r => r.json()).then(data => {
   }
 }).catch(() => {});
 
-// Populate filter dropdowns from facets (run a wildcard-ish search to get all facets).
+// Update a filter dropdown with new facet values, preserving the current selection.
+function updateDropdown(id, defaultLabel, facets, limit) {
+  const el = $(id);
+  const current = el.value;
+  el.innerHTML = '';
+  const defOpt = document.createElement('option');
+  defOpt.value = '';
+  defOpt.textContent = defaultLabel;
+  el.appendChild(defOpt);
+  const items = limit ? facets.slice(0, limit) : facets;
+  items.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.value;
+    opt.textContent = f.value + ' (' + f.count + ')';
+    if (f.value === current) opt.selected = true;
+    el.appendChild(opt);
+  });
+}
+
+// Update all filter dropdowns from facet data.
+function updateFacets(facets) {
+  if (!facets) return;
+  if (facets.statuses) updateDropdown('f-status', 'All statuses', facets.statuses);
+  if (facets.trackers) updateDropdown('f-tracker', 'All trackers', facets.trackers);
+  if (facets.authors) updateDropdown('f-author', 'All authors', facets.authors, 30);
+}
+
+// Initial facet load — runs a minimal search to populate dropdowns before user searches.
 function loadFacets() {
   if (!apiKey) return;
-  fetch('/api/v1/search?q=issue&limit=1', {
+  fetch('/api/v1/search?q=issue&per_page=1' + getFilterParams(), {
     headers: { 'X-Redmine-API-Key': apiKey }
   }).then(r => r.json()).then(data => {
-    if (!data.facets) return;
-    if (data.facets.statuses) {
-      data.facets.statuses.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.value;
-        opt.textContent = f.value + ' (' + f.count + ')';
-        $('f-status').appendChild(opt);
-      });
-    }
-    if (data.facets.trackers) {
-      data.facets.trackers.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.value;
-        opt.textContent = f.value + ' (' + f.count + ')';
-        $('f-tracker').appendChild(opt);
-      });
-    }
-    if (data.facets.authors) {
-      data.facets.authors.slice(0, 30).forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.value;
-        opt.textContent = f.value + ' (' + f.count + ')';
-        $('f-author').appendChild(opt);
-      });
-    }
+    updateFacets(data.facets);
   }).catch(() => {});
 }
 
@@ -169,6 +172,7 @@ async function search() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
 
+    updateFacets(data.facets);
     $('meta').textContent = data.total + ' results (page ' + data.page + ')';
     if (!data.results || data.results.length === 0) {
       $('results').innerHTML = '<p class="empty">No results found.</p>';
