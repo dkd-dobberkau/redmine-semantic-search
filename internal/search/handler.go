@@ -126,7 +126,7 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build the combined permission + filter pre-filter.
-	permFilter := buildPermissionFilter(user.ProjectIDs, tracker, status, project, author, dateFrom, dateTo)
+	permFilter := buildPermissionFilter(user.ProjectIDs, user.Unfiltered, tracker, status, project, author, dateFrom, dateTo)
 
 	// Embed the query vector.
 	queryVec, err := h.embedder.EmbedQuery(ctx, q)
@@ -263,14 +263,17 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 3. Optionally restricts by date range on the updated_on field.
 func buildPermissionFilter(
 	projectIDs []int64,
+	unfiltered bool,
 	tracker, status, project, author string,
 	dateFrom, dateTo *time.Time,
 ) *qdrant.Filter {
 	var mustConditions []*qdrant.Condition
 
 	// Permission pre-filter: project_id must be in the user's accessible projects.
-	// NewMatchInts matches any of the given integer values — ideal for set membership.
-	mustConditions = append(mustConditions, qdrant.NewMatchInts("project_id", projectIDs...))
+	// Skip when unfiltered (Redmine unavailable, public instance).
+	if !unfiltered && len(projectIDs) > 0 {
+		mustConditions = append(mustConditions, qdrant.NewMatchInts("project_id", projectIDs...))
+	}
 
 	// Optional keyword filters.
 	if tracker != "" {

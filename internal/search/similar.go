@@ -45,7 +45,7 @@ func (h *SimilarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permFilter := buildPermissionFilter(user.ProjectIDs, "", "", "", "", nil, nil)
+	permFilter := buildPermissionFilter(user.ProjectIDs, user.Unfiltered, "", "", "", "", nil, nil)
 
 	// Use chunk 0 of the issue as the positive example for recommendation.
 	pointID := qdrantpkg.ChunkPointID(issueID, 0)

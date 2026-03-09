@@ -62,12 +62,19 @@ func (m *AuthMiddleware) Wrap(next http.Handler) http.Handler {
 				writeJSONError(w, http.StatusUnauthorized, "invalid API key")
 				return
 			}
-			// Any other error means Redmine is unreachable or returned an unexpected response.
-			m.logger.WarnContext(r.Context(), "auth: Redmine unavailable during key validation",
-				slog.String("error", err.Error()),
-			)
-			writeJSONError(w, http.StatusServiceUnavailable, "authentication service unavailable")
-			return
+			// Redmine is unreachable — try stale cache entry.
+			if stale := m.cache.GetStale(apiKey); stale != nil {
+				m.logger.WarnContext(r.Context(), "auth: using stale cache, Redmine unavailable",
+					slog.String("error", err.Error()),
+				)
+				perms = stale
+			} else {
+				// No cache at all — allow unfiltered access (public instance).
+				m.logger.WarnContext(r.Context(), "auth: Redmine unavailable, allowing unfiltered access",
+					slog.String("error", err.Error()),
+				)
+				perms = &UserPermissions{Unfiltered: true}
+			}
 		}
 
 		// Inject authenticated user into request context for downstream handlers.

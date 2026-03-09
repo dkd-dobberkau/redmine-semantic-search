@@ -23,6 +23,7 @@ type UserPermissions struct {
 	Login      string
 	IsAdmin    bool
 	ProjectIDs []int64 // projects accessible to the user — used for pre-filtering
+	Unfiltered bool    // true when Redmine is unavailable and no cached perms exist — skip project filter
 }
 
 // cacheEntry holds a cached UserPermissions value and its expiry time.
@@ -126,6 +127,17 @@ func (c *PermissionCache) fetchFromRedmine(ctx context.Context, apiKey string) (
 		IsAdmin:    user.Admin,
 		ProjectIDs: projectIDs,
 	}, nil
+}
+
+// GetStale returns cached permissions for the key even if expired.
+// Returns nil if the key was never cached.
+func (c *PermissionCache) GetStale(apiKey string) *UserPermissions {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if e, ok := c.entries[apiKey]; ok {
+		return e.perms
+	}
+	return nil
 }
 
 // Invalidate removes the cached permissions for the given API key, forcing
