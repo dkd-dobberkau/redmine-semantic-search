@@ -42,6 +42,7 @@ services:
     build:
       context: ..
       dockerfile: deployments/Dockerfile
+    image: redmine-semantic-search
     container_name: redmine-search-indexer
     ports:
       - "8090:8090"
